@@ -1,14 +1,14 @@
 "use client"
 
 import type React from "react"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useLineupStore } from "@/lib/store"
 import type { Role, Lineup } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Trash2, Download, Upload } from "lucide-react"
+import { Trash2, Download, Upload, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 export function LineupManager() {
   const { lineup, removeHero, toggleEditMode, editMode, clearLineup, importLineup } = useLineupStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
   const roles: Role[] = ["HC", "Mid", "Offlane", "Support 4", "Support 5"]
 
@@ -56,6 +57,11 @@ export function LineupManager() {
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
+  }
+
+  const handleImageError = (heroId: number, role: Role) => {
+    console.error(`Failed to load image for hero ID: ${heroId} in role ${role}`)
+    setImageErrors((prev) => ({ ...prev, [`${role}-${heroId}`]: true }))
   }
 
   return (
@@ -141,13 +147,20 @@ export function LineupManager() {
                     lineup[role].map((hero) => (
                       <div key={hero.id} className="relative group bg-card border rounded-md overflow-hidden">
                         <div className="relative h-14 w-24">
-                          <Image
-                            src={hero.img || "/placeholder.svg"}
-                            alt={hero.localized_name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
+                          {imageErrors[`${role}-${hero.id}`] ? (
+                            <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                              <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                          ) : (
+                            <Image
+                              src={hero.img || "/placeholder.svg"}
+                              alt={hero.localized_name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                              onError={() => handleImageError(hero.id, role)}
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             {editMode && (
                               <Button
@@ -188,13 +201,21 @@ export function LineupManager() {
                     lineup[role].map((hero) => (
                       <div key={hero.id} className="relative group bg-card border rounded-md overflow-hidden">
                         <div className="relative h-20 w-36">
-                          <Image
-                            src={hero.img || "/placeholder.svg"}
-                            alt={hero.localized_name}
-                            fill
-                            className="object-cover"
-                            unoptimized
-                          />
+                          {imageErrors[`${role}-${hero.id}`] ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-2">
+                              <AlertCircle className="h-4 w-4 text-muted-foreground mb-1" />
+                              <p className="text-xs text-center text-muted-foreground">{hero.localized_name}</p>
+                            </div>
+                          ) : (
+                            <Image
+                              src={hero.img || "/placeholder.svg"}
+                              alt={hero.localized_name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                              onError={() => handleImageError(hero.id, role)}
+                            />
+                          )}
                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                             {editMode && (
                               <Button variant="destructive" size="icon" onClick={() => removeHero(role, hero.id)}>

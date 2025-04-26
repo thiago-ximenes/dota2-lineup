@@ -7,15 +7,14 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['api.opendota.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'api.opendota.com',
+        pathname: '**',
+      },
+    ],
     unoptimized: true,
-  },
-  // Add this to help with debugging
-  webpack: (config) => {
-    config.infrastructureLogging = {
-      level: 'error',
-    }
-    return config
   },
 }
 

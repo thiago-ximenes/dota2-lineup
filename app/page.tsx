@@ -2,7 +2,7 @@ import { HeroList } from "@/components/hero-list"
 import { LineupManager } from "@/components/lineup-manager"
 import { GameMode } from "@/components/game-mode"
 import { ModeToggle } from "@/components/mode-toggle"
-import { DebugInfo } from "@/components/debug-info"
+import { ImageDebug } from "@/components/image-debug"
 
 export default function Home() {
   return (
@@ -22,7 +22,7 @@ export default function Home() {
       </div>
 
       {/* Debug component to help troubleshoot image issues */}
-      <DebugInfo />
+      <ImageDebug />
     </main>
   )
 }

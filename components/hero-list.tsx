@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Plus } from "lucide-react"
+import { Search, Filter, Plus, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,7 @@ export function HeroList() {
   const [roleFilter, setRoleFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
+  const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
 
   const { addHero, editMode } = useLineupStore()
 
@@ -29,6 +30,17 @@ export function HeroList() {
     const loadHeroes = async () => {
       setLoading(true)
       const data = await fetchHeroes()
+
+      // Log the first hero to debug image paths
+      if (data.length > 0) {
+        console.log("First hero data after processing:", {
+          id: data[0].id,
+          name: data[0].localized_name,
+          img: data[0].img,
+          icon: data[0].icon,
+        })
+      }
+
       setHeroes(data)
       setFilteredHeroes(data)
       setLoading(false)
@@ -54,10 +66,10 @@ export function HeroList() {
     if (roleFilter !== "all") {
       // Map the filter value to possible role names in the API
       const roleMapping: Record<string, string[]> = {
-        carry: ["carry", "pos_1", "position_1", "hard carry", "safe lane"],
-        mid: ["mid", "midlane", "middle", "pos_2", "position_2"],
-        offlane: ["offlane", "off lane", "pos_3", "position_3"],
-        support: ["support", "pos_4", "pos_5", "position_4", "position_5", "hard support", "soft support"],
+        carry: ["carry", "pos 1", "position 1", "hard carry", "safe lane"],
+        mid: ["mid", "midlane", "middle", "pos 2", "position 2"],
+        offlane: ["offlane", "off lane", "pos 3", "position 3"],
+        support: ["support", "pos 4", "pos 5", "position 4", "position 5", "hard support", "soft support"],
       }
 
       const possibleRoles = roleMapping[roleFilter] || [roleFilter]
@@ -109,6 +121,14 @@ export function HeroList() {
       default:
         return "bg-gray-500/10 text-gray-500 border-gray-500/20"
     }
+  }
+
+  const handleImageError = (heroId: number) => {
+    console.error(
+      `Failed to load image for hero ID: ${heroId}`,
+      heroes.find((h) => h.id === heroId),
+    )
+    setImageLoadError((prev) => ({ ...prev, [heroId]: true }))
   }
 
   if (loading) {
@@ -182,14 +202,22 @@ export function HeroList() {
                 className="overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all"
               >
                 <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
-                  <Image
-                    src={hero.img || "/placeholder.svg"}
-                    alt={hero.localized_name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                  />
+                  {imageLoadError[hero.id] ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+                      <AlertCircle className="h-5 w-5 text-muted-foreground mb-1" />
+                      <p className="text-xs text-center text-muted-foreground px-2">{hero.localized_name}</p>
+                    </div>
+                  ) : (
+                    <Image
+                      src={hero.img || "/placeholder.svg"}
+                      alt={hero.localized_name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                      onError={() => handleImageError(hero.id)}
+                    />
+                  )}
                   <div className="absolute top-2 right-2">
                     <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
                       {getAttributeLabel(hero.primary_attr).charAt(0)}
@@ -200,12 +228,13 @@ export function HeroList() {
                   </div>
                 </div>
                 {editMode && (
-                  <div className="p-2">
-                    <div className="grid grid-cols-2 gap-1 mb-1">
+                  <div className="p-3 grid grid-cols-2 gap-2">
+                    {/* Left column - Core roles */}
+                    <div className="space-y-2">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        variant="outline"
+                        className="w-full h-8 flex items-center justify-center"
                         onClick={() => handleAddToRole(hero, "HC")}
                       >
                         <Plus className="h-3 w-3 mr-1" />
@@ -213,28 +242,30 @@ export function HeroList() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        variant="outline"
+                        className="w-full h-8 flex items-center justify-center"
                         onClick={() => handleAddToRole(hero, "Mid")}
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Mid
                       </Button>
-                    </div>
-                    <div className="grid grid-cols-3 gap-1">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        variant="outline"
+                        className="w-full h-8 flex items-center justify-center"
                         onClick={() => handleAddToRole(hero, "Offlane")}
                       >
                         <Plus className="h-3 w-3 mr-1" />
                         Off
                       </Button>
+                    </div>
+
+                    {/* Right column - Support roles */}
+                    <div className="space-y-2">
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        variant="outline"
+                        className="w-full h-8 flex items-center justify-center"
                         onClick={() => handleAddToRole(hero, "Support 4")}
                       >
                         <Plus className="h-3 w-3 mr-1" />
@@ -242,8 +273,8 @@ export function HeroList() {
                       </Button>
                       <Button
                         size="sm"
-                        variant="ghost"
-                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        variant="outline"
+                        className="w-full h-8 flex items-center justify-center"
                         onClick={() => handleAddToRole(hero, "Support 5")}
                       >
                         <Plus className="h-3 w-3 mr-1" />

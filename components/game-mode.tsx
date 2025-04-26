@@ -6,7 +6,7 @@ import type { Role } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dice5, RefreshCw } from "lucide-react"
+import { Dice5, RefreshCw, AlertCircle } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -15,6 +15,7 @@ export function GameMode() {
   const [selectedRole, setSelectedRole] = useState<Role>("HC")
   const [randomHero, setRandomHero] = useState<any | null>(null)
   const [isRandomizing, setIsRandomizing] = useState(false)
+  const [imageError, setImageError] = useState(false)
 
   const roles: Role[] = ["HC", "Mid", "Offlane", "Support 4", "Support 5"]
 
@@ -27,6 +28,7 @@ export function GameMode() {
     }
 
     setIsRandomizing(true)
+    setImageError(false)
 
     // Simulate a randomization animation
     let count = 0
@@ -40,6 +42,11 @@ export function GameMode() {
         setIsRandomizing(false)
       }
     }, 100)
+  }
+
+  const handleImageError = () => {
+    console.error(`Failed to load image for random hero:`, randomHero?.id)
+    setImageError(true)
   }
 
   return (
@@ -81,13 +88,23 @@ export function GameMode() {
                 className="bg-card border rounded-lg overflow-hidden"
               >
                 <div className="relative h-40 w-full">
-                  <Image
-                    src={randomHero.img || "/placeholder.svg"}
-                    alt={randomHero.localized_name}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
+                  {imageError ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4">
+                      <AlertCircle className="h-6 w-6 text-muted-foreground mb-2" />
+                      <p className="text-center text-muted-foreground">
+                        Image could not be loaded for {randomHero.localized_name}
+                      </p>
+                    </div>
+                  ) : (
+                    <Image
+                      src={randomHero.img || "/placeholder.svg"}
+                      alt={randomHero.localized_name}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      onError={handleImageError}
+                    />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                     <h3 className="text-xl font-bold">{randomHero.localized_name}</h3>

@@ -13,21 +13,39 @@ export async function fetchHeroes(): Promise<Hero[]> {
 
     const data = await response.json()
 
-    // Log the first hero to debug image paths
+    // Log the first hero's image paths to debug
     if (data.length > 0) {
-      console.log("Sample hero data:", {
+      console.log("Raw hero image paths:", {
+        id: data[0].id,
         name: data[0].localized_name,
         img: data[0].img,
         icon: data[0].icon,
       })
     }
 
-    return data.map((hero: any) => ({
-      ...hero,
+    return data.map((hero: any) => {
+      // Special handling for hero ID 1 (Anti-Mage) which seems to have issues
+      if (hero.id === 1) {
+        console.log("Special handling for hero ID 1:", hero.localized_name)
+        // Use a hardcoded path for Anti-Mage if that's hero ID 1
+        return {
+          ...hero,
+          img: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/antimage.png?`,
+          icon: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/icons/antimage.png?`,
+        }
+      }
+
       // Ensure the image URLs are properly formatted with the base URL
-      img: `${HERO_IMAGE_BASE}${hero.img}`,
-      icon: `${HERO_IMAGE_BASE}${hero.icon}`,
-    }))
+      // Check if the path already starts with http or if it's a relative path
+      const imgPath = hero.img.startsWith("http") ? hero.img : `${HERO_IMAGE_BASE}${hero.img}`
+      const iconPath = hero.icon.startsWith("http") ? hero.icon : `${HERO_IMAGE_BASE}${hero.icon}`
+
+      return {
+        ...hero,
+        img: imgPath,
+        icon: iconPath,
+      }
+    })
   } catch (error) {
     console.error("Error fetching heroes:", error)
     return []
