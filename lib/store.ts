@@ -46,6 +46,10 @@ export const useLineupStore = create<LineupState>()(
         set(() => ({
           lineup: emptyLineup,
         })),
+      importLineup: (importedLineup: Lineup) =>
+        set(() => ({
+          lineup: importedLineup,
+        })),
     }),
     {
       name: "dota-lineup-storage",

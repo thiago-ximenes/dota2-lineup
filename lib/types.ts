@@ -32,4 +32,5 @@ export interface LineupState {
   removeHero: (role: Role, heroId: number) => void
   toggleEditMode: () => void
   clearLineup: () => void
+  importLineup: (importedLineup: Lineup) => void
 }

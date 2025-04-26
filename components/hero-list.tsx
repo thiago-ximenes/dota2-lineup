@@ -1,16 +1,18 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { fetchHeroes } from "@/lib/api"
 import type { Hero, Role } from "@/lib/types"
 import { useLineupStore } from "@/lib/store"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, Filter } from "lucide-react"
+import { Search, Filter, Plus } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export function HeroList() {
   const [heroes, setHeroes] = useState<Hero[]>([])
@@ -19,6 +21,7 @@ export function HeroList() {
   const [attributeFilter, setAttributeFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState("all")
 
   const { addHero, editMode } = useLineupStore()
 
@@ -34,7 +37,7 @@ export function HeroList() {
     loadHeroes()
   }, [])
 
-  useEffect(() => {
+  const filterHeroes = useCallback(() => {
     let result = heroes
 
     // Filter by search query
@@ -47,32 +50,83 @@ export function HeroList() {
       result = result.filter((hero) => hero.primary_attr === attributeFilter)
     }
 
-    // Filter by role
+    // Filter by role - Fix for midlane filter
     if (roleFilter !== "all") {
-      result = result.filter((hero) => hero.roles.some((role) => role.toLowerCase() === roleFilter.toLowerCase()))
+      // Map the filter value to possible role names in the API
+      const roleMapping: Record<string, string[]> = {
+        carry: ["carry", "pos_1", "position_1", "hard carry", "safe lane"],
+        mid: ["mid", "midlane", "middle", "pos_2", "position_2"],
+        offlane: ["offlane", "off lane", "pos_3", "position_3"],
+        support: ["support", "pos_4", "pos_5", "position_4", "position_5", "hard support", "soft support"],
+      }
+
+      const possibleRoles = roleMapping[roleFilter] || [roleFilter]
+
+      result = result.filter((hero) =>
+        hero.roles.some((role) =>
+          possibleRoles.some((mappedRole) => role.toLowerCase().includes(mappedRole.toLowerCase())),
+        ),
+      )
+    }
+
+    // Filter by tab
+    if (activeTab !== "all") {
+      result = result.filter((hero) => hero.primary_attr === activeTab)
     }
 
     setFilteredHeroes(result)
-  }, [heroes, searchQuery, attributeFilter, roleFilter])
+  }, [heroes, searchQuery, attributeFilter, roleFilter, activeTab])
+
+  useEffect(() => {
+    filterHeroes()
+  }, [filterHeroes])
 
   const handleAddToRole = (hero: Hero, role: Role) => {
     addHero(role, hero)
   }
 
+  const getAttributeLabel = (attr: string) => {
+    switch (attr) {
+      case "str":
+        return "Strength"
+      case "agi":
+        return "Agility"
+      case "int":
+        return "Intelligence"
+      default:
+        return "Unknown"
+    }
+  }
+
+  const getAttributeColor = (attr: string) => {
+    switch (attr) {
+      case "str":
+        return "bg-red-500/10 text-red-500 border-red-500/20"
+      case "agi":
+        return "bg-green-500/10 text-green-500 border-green-500/20"
+      case "int":
+        return "bg-blue-500/10 text-blue-500 border-blue-500/20"
+      default:
+        return "bg-gray-500/10 text-gray-500 border-gray-500/20"
+    }
+  }
+
   if (loading) {
     return (
       <Card>
+        <CardHeader>
+          <CardTitle>Hero Selection</CardTitle>
+        </CardHeader>
         <CardContent className="p-6">
           <div className="flex gap-4 mb-4">
             <Skeleton className="h-10 w-full" />
             <Skeleton className="h-10 w-32" />
-            <Skeleton className="h-10 w-32" />
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {Array(15)
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array(12)
               .fill(0)
               .map((_, i) => (
-                <Skeleton key={i} className="h-32 w-full rounded-md" />
+                <Skeleton key={i} className="h-40 w-full rounded-md" />
               ))}
           </div>
         </CardContent>
@@ -82,107 +136,143 @@ export function HeroList() {
 
   return (
     <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search heroes..."
-              className="pl-10"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Select value={attributeFilter} onValueChange={setAttributeFilter}>
-              <SelectTrigger className="w-[140px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Attribute" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Attributes</SelectItem>
-                <SelectItem value="str">Strength</SelectItem>
-                <SelectItem value="agi">Agility</SelectItem>
-                <SelectItem value="int">Intelligence</SelectItem>
-              </SelectContent>
-            </Select>
-
+      <CardHeader>
+        <CardTitle>Hero Selection</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 sm:p-6">
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search heroes..."
+                className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
-              <SelectTrigger className="w-[140px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Role" />
+                <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="carry">Carry</SelectItem>
-                <SelectItem value="mid">Mid</SelectItem>
+                <SelectItem value="mid">Midlane</SelectItem>
                 <SelectItem value="offlane">Offlane</SelectItem>
                 <SelectItem value="support">Support</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          {filteredHeroes.map((hero) => (
-            <div key={hero.id} className="relative group">
-              <Card className="overflow-hidden h-full">
-                <div className="relative h-24 bg-gradient-to-b from-transparent to-black/50">
+          <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full justify-start mb-4 overflow-x-auto">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="str">Strength</TabsTrigger>
+              <TabsTrigger value="agi">Agility</TabsTrigger>
+              <TabsTrigger value="int">Intelligence</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+            {filteredHeroes.map((hero) => (
+              <Card
+                key={hero.id}
+                className="overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all"
+              >
+                <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
                   <Image
                     src={hero.img || "/placeholder.svg"}
                     alt={hero.localized_name}
                     fill
                     className="object-cover"
                     unoptimized
+                    sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
                   />
+                  <div className="absolute top-2 right-2">
+                    <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
+                      {getAttributeLabel(hero.primary_attr).charAt(0)}
+                    </Badge>
+                  </div>
                   <div className="absolute bottom-0 left-0 right-0 p-2">
                     <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
                   </div>
                 </div>
                 {editMode && (
-                  <div className="p-2 grid grid-cols-2 gap-1 text-xs">
-                    <Button size="sm" variant="outline" className="h-7" onClick={() => handleAddToRole(hero, "HC")}>
-                      HC
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7" onClick={() => handleAddToRole(hero, "Mid")}>
-                      Mid
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7"
-                      onClick={() => handleAddToRole(hero, "Offlane")}
-                    >
-                      Off
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7"
-                      onClick={() => handleAddToRole(hero, "Support 4")}
-                    >
-                      Sup 4
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="h-7 col-span-2"
-                      onClick={() => handleAddToRole(hero, "Support 5")}
-                    >
-                      Sup 5
-                    </Button>
+                  <div className="p-2">
+                    <div className="grid grid-cols-2 gap-1 mb-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        onClick={() => handleAddToRole(hero, "HC")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        HC
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        onClick={() => handleAddToRole(hero, "Mid")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Mid
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        onClick={() => handleAddToRole(hero, "Offlane")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Off
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        onClick={() => handleAddToRole(hero, "Support 4")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Sup 4
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 flex items-center justify-center hover:bg-primary/10"
+                        onClick={() => handleAddToRole(hero, "Support 5")}
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
+                        Sup 5
+                      </Button>
+                    </div>
                   </div>
                 )}
               </Card>
-            </div>
-          ))}
-        </div>
-
-        {filteredHeroes.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No heroes found matching your filters.</p>
+            ))}
           </div>
-        )}
+
+          {filteredHeroes.length === 0 && (
+            <div className="text-center py-12 border rounded-lg">
+              <p className="text-muted-foreground">No heroes found matching your filters.</p>
+              <Button
+                variant="link"
+                onClick={() => {
+                  setSearchQuery("")
+                  setAttributeFilter("all")
+                  setRoleFilter("all")
+                  setActiveTab("all")
+                }}
+              >
+                Clear filters
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

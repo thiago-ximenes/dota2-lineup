@@ -12,9 +12,19 @@ export async function fetchHeroes(): Promise<Hero[]> {
     }
 
     const data = await response.json()
+
+    // Log the first hero to debug image paths
+    if (data.length > 0) {
+      console.log("Sample hero data:", {
+        name: data[0].localized_name,
+        img: data[0].img,
+        icon: data[0].icon,
+      })
+    }
+
     return data.map((hero: any) => ({
       ...hero,
-      // Ensure the image URLs are properly formatted
+      // Ensure the image URLs are properly formatted with the base URL
       img: `${HERO_IMAGE_BASE}${hero.img}`,
       icon: `${HERO_IMAGE_BASE}${hero.icon}`,
     }))
@@ -22,10 +32,4 @@ export async function fetchHeroes(): Promise<Hero[]> {
     console.error("Error fetching heroes:", error)
     return []
   }
-}
-
-export function getHeroImageUrl(path: string): string {
-  if (!path) return ""
-  if (path.startsWith("http")) return path
-  return `${HERO_IMAGE_BASE}${path}`
 }

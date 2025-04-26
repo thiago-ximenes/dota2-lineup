@@ -2,22 +2,27 @@ import { HeroList } from "@/components/hero-list"
 import { LineupManager } from "@/components/lineup-manager"
 import { GameMode } from "@/components/game-mode"
 import { ModeToggle } from "@/components/mode-toggle"
+import { DebugInfo } from "@/components/debug-info"
 
 export default function Home() {
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="flex flex-col gap-6">
-        <header className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Dota 2 Lineup Manager</h1>
+    <main className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-6 space-y-6">
+        <header className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-4 border-b">
+          <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">Dota 2 Lineup Manager</h1>
           <ModeToggle />
         </header>
 
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <GameMode />
           <LineupManager />
-          <HeroList />
         </div>
+
+        <HeroList />
       </div>
+
+      {/* Debug component to help troubleshoot image issues */}
+      <DebugInfo />
     </main>
   )
 }
