@@ -397,7 +397,11 @@ export function HeroList() {
   // Function to update autocomplete suggestions based on search query
   const updateAutocompleteSuggestions = useCallback((query: string) => {
     if (!query.trim()) {
-      setAutocompleteResults([]);
+      // Quando limpar a busca, mostrar todos os heróis em ordem alfabética
+      const sortedHeroes = [...heroes].sort((a, b) => 
+        a.localized_name.toLowerCase().localeCompare(b.localized_name.toLowerCase())
+      );
+      setAutocompleteResults(sortedHeroes);
       return;
     }
 
@@ -417,10 +421,9 @@ export function HeroList() {
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
         
-        // Then sort by name length (shorter names first)
-        return aName.length - bName.length;
-      })
-      .slice(0, 5); // Limit to 5 suggestions for better UX
+        // Then sort alphabetically
+        return aName.localeCompare(bName);
+      });
     
     setAutocompleteResults(suggestions);
   }, [heroes]);
@@ -494,8 +497,12 @@ export function HeroList() {
     if (searchQuery) {
       updateAutocompleteSuggestions(searchQuery);
     } else {
-      // Se não tiver texto, mostra os primeiros 5 heróis como sugestão inicial
-      setAutocompleteResults(heroes.slice(0, 5));
+      // Mostrar todos os heróis quando o input recebe foco e não tem texto
+      // Ordenar por ordem alfabética para facilitar a navegação
+      const sortedHeroes = [...heroes].sort((a, b) => 
+        a.localized_name.toLowerCase().localeCompare(b.localized_name.toLowerCase())
+      );
+      setAutocompleteResults(sortedHeroes);
     }
     setIsAutocompleteOpen(true);
   }, [searchQuery, heroes, updateAutocompleteSuggestions]);
