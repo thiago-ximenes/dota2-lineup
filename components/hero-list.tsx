@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo, memo } from "react"
+import { useState, useEffect, useCallback, useMemo, memo, useRef } from "react"
 import { fetchHeroes } from "@/lib/api"
 import type { Hero, Role } from "@/lib/types"
 import { useLineupStore } from "@/lib/store"
@@ -8,11 +8,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Search, Filter, Plus, AlertCircle } from "lucide-react"
+import { Search, Filter, Plus, AlertCircle, X } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
 
 // Debounce function to delay filtering while user types
 function useDebounce<T>(value: T, delay: number): T {
@@ -227,6 +235,13 @@ export function HeroList() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
+  
+  // State for autocomplete functionality
+  const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
+  const [autocompleteResults, setAutocompleteResults] = useState<Hero[]>([])
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<HTMLDivElement>(null)
 
   // Apply debouncing to search query for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -362,6 +377,122 @@ export function HeroList() {
     setImageLoadError((prev) => ({ ...prev, [heroId]: true }))
   }, [heroes]);
 
+  // Function to update autocomplete suggestions based on search query
+  const updateAutocompleteSuggestions = useCallback((query: string) => {
+    if (!query.trim()) {
+      setAutocompleteResults([]);
+      return;
+    }
+
+    const normalizedQuery = query.toLowerCase().trim();
+    const suggestions = heroes
+      .filter(hero => hero.localized_name.toLowerCase().includes(normalizedQuery))
+      .sort((a, b) => {
+        // Sort by how closely the hero name matches the query
+        // Exact matches at beginning come first
+        const aName = a.localized_name.toLowerCase();
+        const bName = b.localized_name.toLowerCase();
+        
+        // Exact starts-with matches get highest priority
+        const aStartsWith = aName.startsWith(normalizedQuery);
+        const bStartsWith = bName.startsWith(normalizedQuery);
+        
+        if (aStartsWith && !bStartsWith) return -1;
+        if (!aStartsWith && bStartsWith) return 1;
+        
+        // Then sort by name length (shorter names first)
+        return aName.length - bName.length;
+      })
+      .slice(0, 5); // Limit to 5 suggestions for better UX
+    
+    setAutocompleteResults(suggestions);
+  }, [heroes]);
+  
+  // Handle clearing the search input
+  const handleClearSearch = useCallback(() => {
+    setSearchQuery('');
+    setAutocompleteResults([]);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, []);
+  
+  // Handle selecting a hero from autocomplete
+  const handleSelectHero = useCallback((hero: Hero) => {
+    setSearchQuery(hero.localized_name);
+    setIsAutocompleteOpen(false);
+    setAutocompleteResults([]);
+  }, []);
+
+  // Handle keyboard navigation in autocomplete
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isAutocompleteOpen || autocompleteResults.length === 0) return;
+
+    // Down arrow - move selection down
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => 
+        prev < autocompleteResults.length - 1 ? prev + 1 : 0
+      );
+    } 
+    // Up arrow - move selection up
+    else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedSuggestionIndex(prev => 
+        prev > 0 ? prev - 1 : autocompleteResults.length - 1
+      );
+    } 
+    // Enter - select the highlighted item
+    else if (e.key === "Enter" && selectedSuggestionIndex >= 0) {
+      e.preventDefault();
+      handleSelectHero(autocompleteResults[selectedSuggestionIndex]);
+    }
+    // Escape - close the autocomplete
+    else if (e.key === "Escape") {
+      e.preventDefault();
+      setIsAutocompleteOpen(false);
+    }
+  }, [isAutocompleteOpen, autocompleteResults, selectedSuggestionIndex, handleSelectHero]);
+
+  // Reset selection index when autocomplete results change
+  useEffect(() => {
+    setSelectedSuggestionIndex(-1);
+  }, [autocompleteResults]);
+
+  // Handle search input changes
+  const handleSearchInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    updateAutocompleteSuggestions(query);
+    if (query) {
+      setIsAutocompleteOpen(true);
+    } else {
+      setIsAutocompleteOpen(false);
+    }
+  }, [updateAutocompleteSuggestions]);
+  
+  // Focus and show autocomplete when input is focused
+  const handleInputFocus = useCallback(() => {
+    if (searchQuery && !isAutocompleteOpen) {
+      updateAutocompleteSuggestions(searchQuery);
+      setIsAutocompleteOpen(true);
+    }
+  }, [searchQuery, isAutocompleteOpen, updateAutocompleteSuggestions]);
+
+  // Close autocomplete when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchInputRef.current && !searchInputRef.current.contains(e.target as Node)) {
+        setIsAutocompleteOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   // Memoize props passed to each hero card to prevent unnecessary re-renders
   // This needs to be outside any conditionals to maintain consistent hook order
   const heroCardProps = useMemo(() => ({
@@ -419,10 +550,41 @@ export function HeroList() {
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search heroes..."
-                className="pl-10"
+                className="pl-10 pr-8"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={handleSearchInputChange}
+                ref={searchInputRef}
+                onFocus={handleInputFocus}
+                onKeyDown={handleKeyDown}
               />
+              {searchQuery && (
+                <button 
+                  className="absolute right-3 top-3"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                </button>
+              )}
+              {isAutocompleteOpen && autocompleteResults.length > 0 && (
+                <div 
+                  ref={autocompleteRef}
+                  className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 shadow-md max-h-40 overflow-auto"
+                >
+                  {autocompleteResults.map((hero, index) => (
+                    <div
+                      key={hero.id}
+                      className={`flex w-full items-center px-3 py-1 text-xs cursor-pointer hover:bg-accent text-left ${selectedSuggestionIndex === index ? 'bg-accent' : ''}`}
+                      onMouseDown={(e) => {
+                        e.preventDefault(); // Impede que o input perca o foco
+                        handleSelectHero(hero);
+                      }}
+                    >
+                      <span>{hero.localized_name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
