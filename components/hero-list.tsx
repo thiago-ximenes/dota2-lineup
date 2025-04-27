@@ -108,6 +108,18 @@ const HeroCard = memo(({
           <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
         </div>
       </div>
+      
+      {/* Seção para mostrar as roles do herói da API */}
+      <div className="p-2 pt-1 bg-accent/30">
+        <div className="flex flex-wrap gap-1 justify-center">
+          {hero.roles.map((role) => (
+            <Badge key={role} variant="secondary" className="text-xs py-0 h-5">
+              {role}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      
       {editMode && (
         <div className="p-3 grid grid-cols-2 gap-2">
           {/* Left column - Core roles */}
