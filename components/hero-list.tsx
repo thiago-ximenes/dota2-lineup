@@ -79,39 +79,43 @@ const HeroCard = memo(({
               onError={() => handleImageError(hero.id)}
             />
             {isAssigned && (
-              <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1.5">
+              <div className="absolute top-1 left-1 flex gap-1">
                 {assignedRoles.map(role => {
-                  let roleLabel = "";
-                  let roleIcon = "";
+                  let roleColor = "";
+                  let positionNumber = "";
                   
-                  // Melhorando a apresentação das posições
+                  // Definindo cor e número para cada posição
                   switch (role) {
                     case "HC": 
-                      roleLabel = "1"; 
-                      roleIcon = "HC";
+                      positionNumber = "1";
+                      roleColor = "bg-green-500"; // Safe lane carry (verde)
                       break;
                     case "Mid": 
-                      roleLabel = "2"; 
-                      roleIcon = "MID";
+                      positionNumber = "2";
+                      roleColor = "bg-blue-500"; // Mid lane (azul)
                       break;
                     case "Offlane": 
-                      roleLabel = "3"; 
-                      roleIcon = "OFF";
+                      positionNumber = "3";
+                      roleColor = "bg-orange-500"; // Off lane (laranja)
                       break;
                     case "Support 4": 
-                      roleLabel = "4"; 
-                      roleIcon = "SUP";
+                      positionNumber = "4";
+                      roleColor = "bg-yellow-500"; // Roaming support (amarelo)
                       break;
                     case "Support 5": 
-                      roleLabel = "5"; 
-                      roleIcon = "SUP";
+                      positionNumber = "5";
+                      roleColor = "bg-pink-500"; // Hard support (rosa)
                       break;
                   }
                   
                   return (
-                    <div key={role} className="flex items-center justify-center">
-                      <span className="text-xs font-bold text-primary-foreground">
-                        {`${roleLabel}/${roleIcon}`}
+                    <div 
+                      key={role} 
+                      className={`${roleColor} w-6 h-6 rounded-full flex items-center justify-center shadow-md`}
+                      title={role} // Adicionando tooltip para mostrar o nome da role ao passar o mouse
+                    >
+                      <span className="text-xs font-bold text-white">
+                        {positionNumber}
                       </span>
                     </div>
                   );
