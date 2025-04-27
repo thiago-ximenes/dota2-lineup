@@ -309,8 +309,7 @@ export function GameMode() {
                   </div>
                   
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {roles.map((role) => {
-                      const hasHeroes = lineup[role].length > 0;
+                    {rolesWithHeroes.map((role) => {
                       const isSelected = selectedRoles.includes(role);
                       
                       return (
@@ -320,28 +319,25 @@ export function GameMode() {
                               <Badge
                                 variant="outline"
                                 className={`cursor-pointer flex gap-2 items-center px-3 py-2 transition-all duration-200 shadow-sm hover:shadow 
-                                  ${!hasHeroes ? 'opacity-40 cursor-not-allowed' : ''}
-                                  ${isSelected && hasHeroes 
+                                  ${isSelected 
                                     ? `${getPositionColor(role)} ring-2 ring-offset-2 ring-offset-background ring-${getPositionColor(role).split(' ')[0].replace('bg-', '')}`
                                     : "bg-card hover:bg-card/80 border-border"
                                   }`}
-                                onClick={() => hasHeroes && toggleRoleSelection(role)}
+                                onClick={() => toggleRoleSelection(role)}
                               >
                                 <div className={`w-2.5 h-2.5 rounded-full ${getPositionColor(role).split(' ')[0]}`} />
-                                <span className={isSelected && hasHeroes ? "text-white font-medium" : "text-foreground"}>
+                                <span className={isSelected ? "text-white font-medium" : "text-foreground"}>
                                   {getPositionLabel(role)}
                                 </span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isSelected && hasHeroes ? "bg-white/20" : "bg-muted"}`}>
+                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isSelected ? "bg-white/20" : "bg-muted"}`}>
                                   {lineup[role].length}
                                 </span>
                               </Badge>
                             </TooltipTrigger>
                             <TooltipContent side="bottom" className="font-medium">
-                              {!hasHeroes 
-                                ? `No heroes available for ${role}`
-                                : isSelected 
-                                  ? `Remove ${role} from randomization` 
-                                  : `Add ${role} to randomization`
+                              {isSelected 
+                                ? `Remove ${role} from randomization` 
+                                : `Add ${role} to randomization`
                               }
                             </TooltipContent>
                           </Tooltip>
