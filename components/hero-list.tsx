@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo, memo } from "react"
 import { fetchHeroes } from "@/lib/api"
 import type { Hero, Role } from "@/lib/types"
 import { useLineupStore } from "@/lib/store"
@@ -14,6 +14,210 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
+// Debounce function to delay filtering while user types
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+// Memoized Hero Card component to prevent unnecessary re-renders
+const HeroCard = memo(({ 
+  hero, 
+  isHeroInRole, 
+  getHeroRoles, 
+  imageLoadError, 
+  handleImageError, 
+  getAttributeColor, 
+  getAttributeLabel, 
+  editMode, 
+  handleToggleHeroInRole 
+}: {
+  hero: Hero;
+  isHeroInRole: (heroId: number, role: Role) => boolean;
+  getHeroRoles: (heroId: number) => Role[];
+  imageLoadError: Record<number, boolean>;
+  handleImageError: (heroId: number) => void;
+  getAttributeColor: (attr: string) => string;
+  getAttributeLabel: (attr: string) => string;
+  editMode: boolean;
+  handleToggleHeroInRole: (hero: Hero, role: Role) => void;
+}) => {
+  const assignedRoles = getHeroRoles(hero.id);
+  const isAssigned = assignedRoles.length > 0;
+  
+  return (
+    <Card
+      key={hero.id}
+      className={`overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all ${isAssigned ? 'ring-1 ring-primary/70' : ''}`}
+    >
+      <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
+        {imageLoadError[hero.id] ? (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+            <AlertCircle className="h-5 w-5 text-muted-foreground mb-1" />
+            <p className="text-xs text-center text-muted-foreground px-2">{hero.localized_name}</p>
+          </div>
+        ) : (
+          <>
+            <Image
+              src={hero.img || "/placeholder.svg"}
+              alt={hero.localized_name}
+              fill
+              className={`object-cover ${isAssigned ? 'opacity-90' : ''}`}
+              unoptimized
+              sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+              onError={() => handleImageError(hero.id)}
+            />
+            {isAssigned && (
+              <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1">
+                {assignedRoles.map(role => {
+                  let roleLabel = ""
+                  switch (role) {
+                    case "HC": roleLabel = "1"; break;
+                    case "Mid": roleLabel = "2"; break;
+                    case "Offlane": roleLabel = "3"; break;
+                    case "Support 4": roleLabel = "4"; break;
+                    case "Support 5": roleLabel = "5"; break;
+                  }
+                  return (
+                    <span key={role} className="text-xs font-bold text-primary-foreground">
+                      {roleLabel}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
+        <div className="absolute top-2 right-2">
+          <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
+            {getAttributeLabel(hero.primary_attr).charAt(0)}
+          </Badge>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 p-2">
+          <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
+        </div>
+      </div>
+      {editMode && (
+        <div className="p-3 grid grid-cols-2 gap-2">
+          {/* Left column - Core roles */}
+          <div className="space-y-2">
+            <Button
+              size="sm"
+              variant={isHeroInRole(hero.id, "HC") ? "default" : "outline"}
+              className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "HC") ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleToggleHeroInRole(hero, "HC")}
+            >
+              {isHeroInRole(hero.id, "HC") ? (
+                <>
+                  <span className="text-xs font-bold">HC ✓</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 mr-1" />
+                  HC
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant={isHeroInRole(hero.id, "Mid") ? "default" : "outline"}
+              className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Mid") ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleToggleHeroInRole(hero, "Mid")}
+            >
+              {isHeroInRole(hero.id, "Mid") ? (
+                <>
+                  <span className="text-xs font-bold">Mid ✓</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Mid
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant={isHeroInRole(hero.id, "Offlane") ? "default" : "outline"}
+              className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Offlane") ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleToggleHeroInRole(hero, "Offlane")}
+            >
+              {isHeroInRole(hero.id, "Offlane") ? (
+                <>
+                  <span className="text-xs font-bold">Off ✓</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Off
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Right column - Support roles */}
+          <div className="space-y-2">
+            <Button
+              size="sm"
+              variant={isHeroInRole(hero.id, "Support 4") ? "default" : "outline"}
+              className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 4") ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleToggleHeroInRole(hero, "Support 4")}
+            >
+              {isHeroInRole(hero.id, "Support 4") ? (
+                <>
+                  <span className="text-xs font-bold">Sup 4 ✓</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Sup 4
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              variant={isHeroInRole(hero.id, "Support 5") ? "default" : "outline"}
+              className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 5") ? "bg-primary text-primary-foreground" : ""}`}
+              onClick={() => handleToggleHeroInRole(hero, "Support 5")}
+            >
+              {isHeroInRole(hero.id, "Support 5") ? (
+                <>
+                  <span className="text-xs font-bold">Sup 5 ✓</span>
+                </>
+              ) : (
+                <>
+                  <Plus className="h-3 w-3 mr-1" />
+                  Sup 5
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison function to optimize re-renders
+  return (
+    prevProps.hero.id === nextProps.hero.id &&
+    prevProps.editMode === nextProps.editMode &&
+    prevProps.imageLoadError[prevProps.hero.id] === nextProps.imageLoadError[nextProps.hero.id] &&
+    // Check if the hero's role assignments have changed
+    JSON.stringify(prevProps.getHeroRoles(prevProps.hero.id)) === 
+    JSON.stringify(nextProps.getHeroRoles(nextProps.hero.id))
+  );
+});
+
 export function HeroList() {
   const [heroes, setHeroes] = useState<Hero[]>([])
   const [filteredHeroes, setFilteredHeroes] = useState<Hero[]>([])
@@ -23,6 +227,9 @@ export function HeroList() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
+
+  // Apply debouncing to search query for better performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   // Call useLineupStore at the top level of the component
   const { addHero, removeHero, editMode, lineup } = useLineupStore()
@@ -46,13 +253,13 @@ export function HeroList() {
   }, [isHeroInRole]);
 
   // Function to handle toggling heroes in roles
-  const handleToggleHeroInRole = (hero: Hero, role: Role) => {
+  const handleToggleHeroInRole = useCallback((hero: Hero, role: Role) => {
     if (isHeroInRole(hero.id, role)) {
       removeHero(role, hero.id);
     } else {
       addHero(role, hero);
     }
-  };
+  }, [isHeroInRole, removeHero, addHero]);
 
   useEffect(() => {
     const loadHeroes = async () => {
@@ -77,83 +284,105 @@ export function HeroList() {
     loadHeroes()
   }, [])
 
-  const filterHeroes = useCallback(() => {
-    let result = heroes
+  // Create memoized role mapping
+  const roleMapping = useMemo(() => ({
+    carry: ["carry", "pos 1", "position 1", "hard carry", "safe lane"],
+    mid: ["mid", "midlane", "middle", "pos 2", "position 2"],
+    offlane: ["offlane", "off lane", "pos 3", "position 3"],
+    support: ["support", "pos 4", "pos 5", "position 4", "position 5", "hard support", "soft support"],
+  }), []);
 
-    // Filter by search query
-    if (searchQuery) {
-      result = result.filter((hero) => hero.localized_name.toLowerCase().includes(searchQuery.toLowerCase()))
-    }
+  // Use debounced search query for filtering
+  useEffect(() => {
+    // Create a new search index or filtering function
+    const filterHeroes = () => {
+      // Start with all heroes
+      let result = [...heroes];
 
-    // Filter by attribute
-    if (attributeFilter !== "all") {
-      result = result.filter((hero) => hero.primary_attr === attributeFilter)
-    }
-
-    // Filter by role - Fix for midlane filter
-    if (roleFilter !== "all") {
-      // Map the filter value to possible role names in the API
-      const roleMapping: Record<string, string[]> = {
-        carry: ["carry", "pos 1", "position 1", "hard carry", "safe lane"],
-        mid: ["mid", "midlane", "middle", "pos 2", "position 2"],
-        offlane: ["offlane", "off lane", "pos 3", "position 3"],
-        support: ["support", "pos 4", "pos 5", "position 4", "position 5", "hard support", "soft support"],
+      // Filter by search query
+      if (debouncedSearchQuery) {
+        const lowercaseQuery = debouncedSearchQuery.toLowerCase();
+        result = result.filter((hero) => 
+          hero.localized_name.toLowerCase().includes(lowercaseQuery)
+        );
       }
 
-      const possibleRoles = roleMapping[roleFilter] || [roleFilter]
+      // Filter by attribute
+      if (attributeFilter !== "all") {
+        result = result.filter((hero) => hero.primary_attr === attributeFilter);
+      }
 
-      result = result.filter((hero) =>
-        hero.roles.some((role) =>
-          possibleRoles.some((mappedRole) => role.toLowerCase().includes(mappedRole.toLowerCase())),
-        ),
-      )
-    }
+      // Filter by role - Fix for midlane filter
+      if (roleFilter !== "all") {
+        const possibleRoles = roleMapping[roleFilter as keyof typeof roleMapping] || [roleFilter];
+        
+        result = result.filter((hero) =>
+          hero.roles.some((role) =>
+            possibleRoles.some((mappedRole) => 
+              role.toLowerCase().includes(mappedRole.toLowerCase())
+            )
+          )
+        );
+      }
 
-    // Filter by tab
-    if (activeTab !== "all") {
-      result = result.filter((hero) => hero.primary_attr === activeTab)
-    }
+      // Filter by tab
+      if (activeTab !== "all") {
+        result = result.filter((hero) => hero.primary_attr === activeTab);
+      }
 
-    setFilteredHeroes(result)
-  }, [heroes, searchQuery, attributeFilter, roleFilter, activeTab])
+      setFilteredHeroes(result);
+    };
 
-  useEffect(() => {
-    filterHeroes()
-  }, [filterHeroes])
+    filterHeroes();
+  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, roleMapping]);
 
-  const getAttributeLabel = (attr: string) => {
+  const getAttributeLabel = useCallback((attr: string) => {
     switch (attr) {
-      case "str":
-        return "Strength"
-      case "agi":
-        return "Agility"
-      case "int":
-        return "Intelligence"
-      default:
-        return "Unknown"
+      case "str": return "Strength";
+      case "agi": return "Agility";
+      case "int": return "Intelligence";
+      default: return "Unknown";
     }
-  }
+  }, []);
 
-  const getAttributeColor = (attr: string) => {
+  const getAttributeColor = useCallback((attr: string) => {
     switch (attr) {
-      case "str":
-        return "bg-red-500/10 text-red-500 border-red-500/20"
-      case "agi":
-        return "bg-green-500/10 text-green-500 border-green-500/20"
-      case "int":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20"
-      default:
-        return "bg-gray-500/10 text-gray-500 border-gray-500/20"
+      case "str": return "bg-red-500/10 text-red-500 border-red-500/20";
+      case "agi": return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "int": return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+      default: return "bg-gray-500/10 text-gray-500 border-gray-500/20";
     }
-  }
+  }, []);
 
-  const handleImageError = (heroId: number) => {
+  const handleImageError = useCallback((heroId: number) => {
     console.error(
       `Failed to load image for hero ID: ${heroId}`,
       heroes.find((h) => h.id === heroId),
     )
     setImageLoadError((prev) => ({ ...prev, [heroId]: true }))
-  }
+  }, [heroes]);
+
+  // Memoize props passed to each hero card to prevent unnecessary re-renders
+  // This needs to be outside any conditionals to maintain consistent hook order
+  const heroCardProps = useMemo(() => ({
+    isHeroInRole,
+    getHeroRoles,
+    imageLoadError,
+    handleImageError,
+    getAttributeColor,
+    getAttributeLabel,
+    editMode,
+    handleToggleHeroInRole
+  }), [
+    isHeroInRole, 
+    getHeroRoles, 
+    imageLoadError, 
+    handleImageError,
+    getAttributeColor,
+    getAttributeLabel,
+    editMode,
+    handleToggleHeroInRole
+  ]);
 
   if (loading) {
     return (
@@ -220,162 +449,13 @@ export function HeroList() {
           </Tabs>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-            {filteredHeroes.map((hero) => {
-              // Use the helper function instead of calling useLineupStore in the loop
-              const assignedRoles = getHeroRoles(hero.id);
-              const isAssigned = assignedRoles.length > 0;
-              
-              return (
-                <Card
-                  key={hero.id}
-                  className={`overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all ${isAssigned ? 'ring-1 ring-primary/70' : ''}`}
-                >
-                  <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
-                    {imageLoadError[hero.id] ? (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
-                        <AlertCircle className="h-5 w-5 text-muted-foreground mb-1" />
-                        <p className="text-xs text-center text-muted-foreground px-2">{hero.localized_name}</p>
-                      </div>
-                    ) : (
-                      <>
-                        <Image
-                          src={hero.img || "/placeholder.svg"}
-                          alt={hero.localized_name}
-                          fill
-                          className={`object-cover ${isAssigned ? 'opacity-90' : ''}`}
-                          unoptimized
-                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                          onError={() => handleImageError(hero.id)}
-                        />
-                        {isAssigned && (
-                          <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1">
-                            {assignedRoles.map(role => {
-                              let roleLabel = ""
-                              switch (role) {
-                                case "HC": roleLabel = "1"; break;
-                                case "Mid": roleLabel = "2"; break;
-                                case "Offlane": roleLabel = "3"; break;
-                                case "Support 4": roleLabel = "4"; break;
-                                case "Support 5": roleLabel = "5"; break;
-                              }
-                              return (
-                                <span key={role} className="text-xs font-bold text-primary-foreground">
-                                  {roleLabel}
-                                </span>
-                              )
-                            })}
-                          </div>
-                        )}
-                      </>
-                    )}
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
-                        {getAttributeLabel(hero.primary_attr).charAt(0)}
-                      </Badge>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 p-2">
-                      <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
-                    </div>
-                  </div>
-                  {editMode && (
-                    <div className="p-3 grid grid-cols-2 gap-2">
-                      {/* Left column - Core roles */}
-                      <div className="space-y-2">
-                        <Button
-                          size="sm"
-                          variant={isHeroInRole(hero.id, "HC") ? "default" : "outline"}
-                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "HC") ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => handleToggleHeroInRole(hero, "HC")}
-                        >
-                          {isHeroInRole(hero.id, "HC") ? (
-                            <>
-                              <span className="text-xs font-bold">HC ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              HC
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={isHeroInRole(hero.id, "Mid") ? "default" : "outline"}
-                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Mid") ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => handleToggleHeroInRole(hero, "Mid")}
-                        >
-                          {isHeroInRole(hero.id, "Mid") ? (
-                            <>
-                              <span className="text-xs font-bold">Mid ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Mid
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={isHeroInRole(hero.id, "Offlane") ? "default" : "outline"}
-                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Offlane") ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => handleToggleHeroInRole(hero, "Offlane")}
-                        >
-                          {isHeroInRole(hero.id, "Offlane") ? (
-                            <>
-                              <span className="text-xs font-bold">Off ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Off
-                            </>
-                          )}
-                        </Button>
-                      </div>
-
-                      {/* Right column - Support roles */}
-                      <div className="space-y-2">
-                        <Button
-                          size="sm"
-                          variant={isHeroInRole(hero.id, "Support 4") ? "default" : "outline"}
-                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 4") ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => handleToggleHeroInRole(hero, "Support 4")}
-                        >
-                          {isHeroInRole(hero.id, "Support 4") ? (
-                            <>
-                              <span className="text-xs font-bold">Sup 4 ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Sup 4
-                            </>
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant={isHeroInRole(hero.id, "Support 5") ? "default" : "outline"}
-                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 5") ? "bg-primary text-primary-foreground" : ""}`}
-                          onClick={() => handleToggleHeroInRole(hero, "Support 5")}
-                        >
-                          {isHeroInRole(hero.id, "Support 5") ? (
-                            <>
-                              <span className="text-xs font-bold">Sup 5 ✓</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Sup 5
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </Card>
-              )
-            })}
+            {filteredHeroes.map((hero) => (
+              <HeroCard 
+                key={hero.id} 
+                hero={hero} 
+                {...heroCardProps}
+              />
+            ))}
           </div>
 
           {filteredHeroes.length === 0 && (
