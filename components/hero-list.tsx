@@ -272,10 +272,10 @@ export function HeroList() {
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
   
-  // Novo estado para armazenar roles únicos da API
+  // Estado para armazenar roles únicos da API
   const [availableRoles, setAvailableRoles] = useState<string[]>([])
   
-  // Novo estado para o filtro de posições selecionadas
+  // Estado para o filtro de posições selecionadas
   const [selectedPositionFilter, setSelectedPositionFilter] = useState<"all" | Role>("all")
   
   // State for autocomplete functionality
@@ -308,6 +308,19 @@ export function HeroList() {
     
     return roles;
   }, [isHeroInRole]);
+
+  // Function to get positions that have heroes assigned
+  const getActivePositions = useCallback((): Role[] => {
+    const positions: Role[] = [];
+    
+    if (lineup.HC.length > 0) positions.push("HC");
+    if (lineup.Mid.length > 0) positions.push("Mid");
+    if (lineup.Offlane.length > 0) positions.push("Offlane");
+    if (lineup["Support 4"].length > 0) positions.push("Support 4");
+    if (lineup["Support 5"].length > 0) positions.push("Support 5");
+    
+    return positions;
+  }, [lineup]);
 
   // Function to handle toggling heroes in roles
   const handleToggleHeroInRole = useCallback((hero: Hero, role: Role) => {
@@ -679,43 +692,51 @@ export function HeroList() {
               </SelectContent>
             </Select>
             
-            {/* Novo filtro por posição selecionada */}
+            {/* Novo filtro por posição selecionada - mostrando apenas posições com heróis */}
             <Select value={selectedPositionFilter} onValueChange={setSelectedPositionFilter as any}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by position" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Positions</SelectItem>
-                <SelectItem value="HC">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
-                    <span>Position 1 (HC)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="Mid">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                    <span>Position 2 (Mid)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="Offlane">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-orange-500 mr-2"></div>
-                    <span>Position 3 (Offlane)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="Support 4">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
-                    <span>Position 4 (Support)</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="Support 5">
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-pink-500 mr-2"></div>
-                    <span>Position 5 (Support)</span>
-                  </div>
-                </SelectItem>
+                {/* Mostrar apenas posições que têm heróis selecionados */}
+                {getActivePositions().map(position => {
+                  // Definindo a cor e o texto para cada posição
+                  let positionColor = "";
+                  let positionText = "";
+                  
+                  switch (position) {
+                    case "HC":
+                      positionColor = "bg-green-500";
+                      positionText = "Position 1 (HC)";
+                      break;
+                    case "Mid":
+                      positionColor = "bg-blue-500";
+                      positionText = "Position 2 (Mid)";
+                      break;
+                    case "Offlane":
+                      positionColor = "bg-orange-500";
+                      positionText = "Position 3 (Offlane)";
+                      break;
+                    case "Support 4":
+                      positionColor = "bg-yellow-500";
+                      positionText = "Position 4 (Support)";
+                      break;
+                    case "Support 5":
+                      positionColor = "bg-pink-500";
+                      positionText = "Position 5 (Support)";
+                      break;
+                  }
+                  
+                  return (
+                    <SelectItem key={position} value={position}>
+                      <div className="flex items-center">
+                        <div className={`w-4 h-4 rounded-full ${positionColor} mr-2`}></div>
+                        <span>{positionText}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
