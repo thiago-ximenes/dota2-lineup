@@ -288,51 +288,45 @@ export function GameMode() {
                           </div>
                           
                           <div className="p-4 border-t border-border/50">
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between mb-3">
                               <Badge className={getPositionColor(selectedRole)}>
                                 {getPositionLabel(selectedRole)}
                               </Badge>
                               
-                              <div className="flex gap-2">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7"
-                                        onClick={handleRandomize}
-                                      >
-                                        <RefreshCw className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Roll again</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                                
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-7 w-7"
-                                        onClick={() => setRandomHero(null)}
-                                      >
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                      <p>Clear selection</p>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              </div>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-7 w-7"
+                                      onClick={() => setRandomHero(null)}
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Clear selection</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                             
-                            <h3 className="text-xl font-bold mt-2">{randomHero.localized_name}</h3>
+                            <h3 className="text-xl font-bold mb-3">{randomHero.localized_name}</h3>
+                            
+                            <Button 
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRandomize}
+                              disabled={isRandomizing}
+                              className="w-full"
+                            >
+                              {isRandomizing ? 
+                                <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" /> : 
+                                <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                              }
+                              Roll again
+                            </Button>
                           </div>
                         </div>
                       </motion.div>
