@@ -246,7 +246,10 @@ export function LineupManager() {
 
             {/* Heroes display - each role is a section */}
             <div className="space-y-8">
-              {roles.filter(shouldShowRole).map((role) => (
+              {roles
+                .filter(role => lineup[role].length > 0) // Mostra apenas posições com heróis
+                .filter(shouldShowRole) // Aplica o filtro de posições selecionadas
+                .map((role) => (
                 <div key={role} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -257,48 +260,42 @@ export function LineupManager() {
                   </div>
                   
                   <div className="flex flex-wrap gap-3">
-                    {lineup[role].length > 0 ? (
-                      lineup[role].map((hero) => (
-                        <div key={hero.id} className="relative group bg-card border rounded-md overflow-hidden">
-                          <div className="relative h-20 w-36">
-                            {imageErrors[`${role}-${hero.id}`] ? (
-                              <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-2">
-                                <AlertCircle className="h-4 w-4 text-muted-foreground mb-1" />
-                                <p className="text-xs text-center text-muted-foreground">{hero.localized_name}</p>
-                              </div>
-                            ) : (
-                              <Image
-                                src={hero.img || "/placeholder.svg"}
-                                alt={hero.localized_name}
-                                fill
-                                className="object-cover"
-                                unoptimized
-                                onError={() => handleImageError(hero.id, role)}
-                              />
-                            )}
-                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              {editMode && (
-                                <Button 
-                                  variant="destructive" 
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleRemoveHero(role, hero.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
+                    {lineup[role].map((hero) => (
+                      <div key={hero.id} className="relative group bg-card border rounded-md overflow-hidden">
+                        <div className="relative h-20 w-36">
+                          {imageErrors[`${role}-${hero.id}`] ? (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-2">
+                              <AlertCircle className="h-4 w-4 text-muted-foreground mb-1" />
+                              <p className="text-xs text-center text-muted-foreground">{hero.localized_name}</p>
                             </div>
-                          </div>
-                          <div className="p-2 text-center">
-                            <p className="text-sm truncate">{hero.localized_name}</p>
+                          ) : (
+                            <Image
+                              src={hero.img || "/placeholder.svg"}
+                              alt={hero.localized_name}
+                              fill
+                              className="object-cover"
+                              unoptimized
+                              onError={() => handleImageError(hero.id, role)}
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            {editMode && (
+                              <Button 
+                                variant="destructive" 
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleRemoveHero(role, hero.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-sm text-muted-foreground italic w-full py-4 px-3 border rounded-md text-center">
-                        No heroes selected for {role}
+                        <div className="p-2 text-center">
+                          <p className="text-sm truncate">{hero.localized_name}</p>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               ))}
