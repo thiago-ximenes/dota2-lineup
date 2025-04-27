@@ -165,7 +165,7 @@ export function GameMode() {
   }
 
   return (
-    <Card className="h-full">
+    <Card className="h-auto">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -228,7 +228,7 @@ export function GameMode() {
                     transition={{ duration: 0.2 }}
                     className="bg-card border rounded-lg overflow-hidden"
                   >
-                    <div className="relative h-40 w-full">
+                    <div className="relative h-48 sm:h-56 w-full">
                       {imageError ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4">
                           <AlertCircle className="h-6 w-6 text-muted-foreground mb-2" />
@@ -259,7 +259,7 @@ export function GameMode() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[160px]"
+                    className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[180px]"
                   >
                     <Dice5 className="h-10 w-10 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">
@@ -369,8 +369,8 @@ export function GameMode() {
                       exit={{ opacity: 0 }}
                       className="space-y-3"
                     >
-                      <ScrollArea className="max-h-[400px] pr-4">
-                        <div className="space-y-3">
+                      <ScrollArea className="max-h-[320px] pr-4">
+                        <div className="space-y-3 pb-2">
                           {selectedRoles.map((role) => (
                             randomHeroes[role] ? (
                               <motion.div
