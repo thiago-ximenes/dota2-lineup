@@ -13,6 +13,7 @@ import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 // Debounce function to delay filtering while user types
 function useDebounce<T>(value: T, delay: number): T {
@@ -82,42 +83,58 @@ const HeroCard = memo(({
               <div className="absolute top-1 left-1 flex gap-1">
                 {assignedRoles.map(role => {
                   let roleColor = "";
-                  let positionNumber = "";
+                  let positionLabel = "";
+                  let tooltipText = "";
                   
-                  // Definindo cor e número para cada posição
+                  // Definindo cor, nome e tooltip para cada posição
                   switch (role) {
                     case "HC": 
-                      positionNumber = "1";
+                      positionLabel = "HC";
                       roleColor = "bg-green-500"; // Safe lane carry (verde)
+                      tooltipText = "Hard Carry (Posição 1) - Safe Lane";
                       break;
                     case "Mid": 
-                      positionNumber = "2";
+                      positionLabel = "MID";
                       roleColor = "bg-blue-500"; // Mid lane (azul)
+                      tooltipText = "Mid Lane (Posição 2)";
                       break;
                     case "Offlane": 
-                      positionNumber = "3";
+                      positionLabel = "OFF";
                       roleColor = "bg-orange-500"; // Off lane (laranja)
+                      tooltipText = "Offlane (Posição 3)";
                       break;
                     case "Support 4": 
-                      positionNumber = "4";
+                      positionLabel = "S4";
                       roleColor = "bg-yellow-500"; // Roaming support (amarelo)
+                      tooltipText = "Support 4 (Roaming/Soft Support)";
                       break;
                     case "Support 5": 
-                      positionNumber = "5";
+                      positionLabel = "S5";
                       roleColor = "bg-pink-500"; // Hard support (rosa)
+                      tooltipText = "Support 5 (Hard Support)";
                       break;
                   }
                   
                   return (
-                    <div 
-                      key={role} 
-                      className={`${roleColor} w-6 h-6 rounded-full flex items-center justify-center shadow-md`}
-                      title={role} // Adicionando tooltip para mostrar o nome da role ao passar o mouse
-                    >
-                      <span className="text-xs font-bold text-white">
-                        {positionNumber}
-                      </span>
-                    </div>
+                    <TooltipProvider key={role}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div 
+                            className={`${roleColor} w-6 h-6 rounded-full flex items-center justify-center shadow-md cursor-default select-none`}
+                          >
+                            <span className="text-xs font-bold text-white">
+                              {positionLabel}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent className="font-medium bg-popover/95 backdrop-blur-sm">
+                          <div className="flex items-center gap-1.5">
+                            <div className={`w-3 h-3 rounded-full ${roleColor}`}></div>
+                            <span>{tooltipText}</span>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>
@@ -138,7 +155,7 @@ const HeroCard = memo(({
       <div className="p-2 pt-1 bg-accent/30">
         <div className="flex flex-wrap gap-1 justify-center">
           {hero.roles.map((role) => (
-            <Badge key={role} variant="secondary" className="text-xs py-0 h-5">
+            <Badge key={role} variant="secondary" className="text-xs py-0 h-5 select-none cursor-default">
               {role}
             </Badge>
           ))}
@@ -257,6 +274,9 @@ export function HeroList() {
   
   // Novo estado para armazenar roles únicos da API
   const [availableRoles, setAvailableRoles] = useState<string[]>([])
+  
+  // Novo estado para o filtro de posições selecionadas
+  const [selectedPositionFilter, setSelectedPositionFilter] = useState<"all" | Role>("all")
   
   // State for autocomplete functionality
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
@@ -386,11 +406,19 @@ export function HeroList() {
         );
       }
 
+      // Novo filtro por posição
+      if (selectedPositionFilter !== "all") {
+        result = result.filter(hero => {
+          const roles = getHeroRoles(hero.id);
+          return roles.includes(selectedPositionFilter);
+        });
+      }
+
       setFilteredHeroes(result);
     };
 
     filterHeroes();
-  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab]);
+  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, selectedPositionFilter]);
 
   const getAttributeLabel = useCallback((attr: string) => {
     switch (attr) {
@@ -636,6 +664,8 @@ export function HeroList() {
                 </div>
               )}
             </div>
+            
+            {/* Filtro por role da API */}
             <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
                 <Filter className="h-4 w-4 mr-2" />
@@ -646,6 +676,46 @@ export function HeroList() {
                 {availableRoles.map(role => (
                   <SelectItem key={role} value={role}>{role}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            
+            {/* Novo filtro por posição selecionada */}
+            <Select value={selectedPositionFilter} onValueChange={setSelectedPositionFilter as any}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by position" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Positions</SelectItem>
+                <SelectItem value="HC">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                    <span>Position 1 (HC)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="Mid">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <span>Position 2 (Mid)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="Offlane">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-orange-500 mr-2"></div>
+                    <span>Position 3 (Offlane)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="Support 4">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+                    <span>Position 4 (Support)</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="Support 5">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded-full bg-pink-500 mr-2"></div>
+                    <span>Position 5 (Support)</span>
+                  </div>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
