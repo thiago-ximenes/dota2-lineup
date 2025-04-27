@@ -23,10 +23,12 @@ export default function RootLayout({
       <body className={inter.className} suppressHydrationWarning>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <div className="flex flex-col min-h-screen">
-            <main className="flex-1">
+            <main className="flex-1 pb-16"> {/* Added padding bottom to ensure content isn't hidden behind the footer */}
               {children}
             </main>
-            <Footer />
+            <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-50">
+              <Footer />
+            </div>
           </div>
         </ThemeProvider>
       </body>

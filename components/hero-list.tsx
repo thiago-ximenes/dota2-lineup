@@ -229,15 +229,12 @@ const HeroCard = memo(({
 export function HeroList() {
   const [heroes, setHeroes] = useState<Hero[]>([])
   const [filteredHeroes, setFilteredHeroes] = useState<Hero[]>([])
-  const [displayedHeroes, setDisplayedHeroes] = useState<Hero[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [attributeFilter, setAttributeFilter] = useState("all")
   const [roleFilter, setRoleFilter] = useState("all")
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
-  const [visibleCount, setVisibleCount] = useState(24) // Número inicial de heróis visíveis
-  const heroGridRef = useRef<HTMLDivElement>(null)
   
   // State for autocomplete functionality
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
@@ -319,10 +316,27 @@ export function HeroList() {
 
       // Filter by search query
       if (debouncedSearchQuery) {
-        const lowercaseQuery = debouncedSearchQuery.toLowerCase();
+        const lowercaseQuery = debouncedSearchQuery.toLowerCase().trim();
+        // Filtrar heróis que contêm a string de busca
         result = result.filter((hero) => 
           hero.localized_name.toLowerCase().includes(lowercaseQuery)
         );
+        
+        // Ordenar para que os heróis que começam com a string de busca apareçam primeiro
+        result.sort((a, b) => {
+          const aName = a.localized_name.toLowerCase();
+          const bName = b.localized_name.toLowerCase();
+          
+          // Heróis que começam com a string de busca têm prioridade
+          const aStartsWith = aName.startsWith(lowercaseQuery);
+          const bStartsWith = bName.startsWith(lowercaseQuery);
+          
+          if (aStartsWith && !bStartsWith) return -1;
+          if (!aStartsWith && bStartsWith) return 1;
+          
+          // Se ambos começam ou ambos não começam, ordenar por ordem alfabética
+          return aName.localeCompare(bName);
+        });
       }
 
       // Filter by attribute
@@ -349,40 +363,10 @@ export function HeroList() {
       }
 
       setFilteredHeroes(result);
-      // Reset visible count quando os filtros mudam
-      setVisibleCount(24);
     };
 
     filterHeroes();
   }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, roleMapping]);
-
-  // Efeito para atualizar os heróis visíveis com base no filteredHeroes
-  useEffect(() => {
-    setDisplayedHeroes(filteredHeroes.slice(0, visibleCount));
-  }, [filteredHeroes, visibleCount]);
-
-  // Função para carregar mais heróis quando rolar até o final
-  const handleScroll = useCallback(() => {
-    const scrollY = window.scrollY;
-    const windowHeight = window.innerHeight;
-    const documentHeight = document.documentElement.scrollHeight;
-    
-    // Se estiver próximo do final da página
-    if (scrollY + windowHeight >= documentHeight - 300) {
-      // Carrega mais heróis se ainda houver mais para mostrar
-      if (visibleCount < filteredHeroes.length) {
-        setVisibleCount(prevCount => Math.min(prevCount + 12, filteredHeroes.length));
-      }
-    }
-  }, [filteredHeroes.length, visibleCount]);
-
-  // Adicionar o listener de rolagem
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
 
   const getAttributeLabel = useCallback((attr: string) => {
     switch (attr) {
@@ -648,25 +632,14 @@ export function HeroList() {
             </TabsList>
           </Tabs>
 
-          <div ref={heroGridRef} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-            {displayedHeroes.map((hero) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
+            {filteredHeroes.map((hero) => (
               <HeroCard 
                 key={hero.id} 
                 hero={hero} 
                 {...heroCardProps}
               />
             ))}
-            {filteredHeroes.length > visibleCount && (
-              <div className="col-span-full flex justify-center py-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setVisibleCount(prev => Math.min(prev + 12, filteredHeroes.length))}
-                >
-                  Load more heroes ({filteredHeroes.length - visibleCount} remaining)
-                </Button>
-              </div>
-            )}
           </div>
 
           {filteredHeroes.length === 0 && (
