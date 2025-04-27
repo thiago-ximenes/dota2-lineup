@@ -198,8 +198,7 @@ export function LineupManager() {
           <>
             {positionsWithHeroes.length > 0 && (
               <div className="mb-6 animate-in fade-in slide-in-from-bottom-3 duration-300">
-                <div className="flex flex-col gap-3">
-                  <h3 className="text-sm font-medium">Filter by position</h3>
+                <div className="flex items-center gap-2 mb-2">
                   <div className="flex flex-wrap gap-2">
                     {positionsWithHeroes.map((role) => (
                       <TooltipProvider key={role}>
