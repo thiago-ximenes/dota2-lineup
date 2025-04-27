@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useLineupStore } from "@/lib/store"
 import type { Role } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -34,6 +34,14 @@ export function GameMode() {
     roles.filter(role => lineup[role].length > 0),
     [lineup]
   )
+  
+  // Monitor changes in lineup and update selectedRoles accordingly
+  useEffect(() => {
+    // Filter out any selected roles that no longer have heroes
+    setSelectedRoles(prev => 
+      prev.filter(role => lineup[role].length > 0)
+    )
+  }, [lineup])
   
   // Get position color (reused from lineup-manager.tsx)
   const getPositionColor = (role: Role): string => {
