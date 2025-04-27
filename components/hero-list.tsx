@@ -24,7 +24,35 @@ export function HeroList() {
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
 
-  const { addHero, editMode } = useLineupStore()
+  // Call useLineupStore at the top level of the component
+  const { addHero, removeHero, editMode, lineup } = useLineupStore()
+
+  // Function to check if a hero is assigned to a specific role
+  const isHeroInRole = useCallback((heroId: number, role: Role) => {
+    return lineup[role].some(h => h.id === heroId);
+  }, [lineup]);
+
+  // Function to get all roles a hero is assigned to
+  const getHeroRoles = useCallback((heroId: number): Role[] => {
+    const roles: Role[] = [];
+    
+    if (isHeroInRole(heroId, "HC")) roles.push("HC");
+    if (isHeroInRole(heroId, "Mid")) roles.push("Mid");
+    if (isHeroInRole(heroId, "Offlane")) roles.push("Offlane");
+    if (isHeroInRole(heroId, "Support 4")) roles.push("Support 4");
+    if (isHeroInRole(heroId, "Support 5")) roles.push("Support 5");
+    
+    return roles;
+  }, [isHeroInRole]);
+
+  // Function to handle toggling heroes in roles
+  const handleToggleHeroInRole = (hero: Hero, role: Role) => {
+    if (isHeroInRole(hero.id, role)) {
+      removeHero(role, hero.id);
+    } else {
+      addHero(role, hero);
+    }
+  };
 
   useEffect(() => {
     const loadHeroes = async () => {
@@ -92,10 +120,6 @@ export function HeroList() {
   useEffect(() => {
     filterHeroes()
   }, [filterHeroes])
-
-  const handleAddToRole = (hero: Hero, role: Role) => {
-    addHero(role, hero)
-  }
 
   const getAttributeLabel = (attr: string) => {
     switch (attr) {
@@ -196,95 +220,162 @@ export function HeroList() {
           </Tabs>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-            {filteredHeroes.map((hero) => (
-              <Card
-                key={hero.id}
-                className="overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all"
-              >
-                <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
-                  {imageLoadError[hero.id] ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
-                      <AlertCircle className="h-5 w-5 text-muted-foreground mb-1" />
-                      <p className="text-xs text-center text-muted-foreground px-2">{hero.localized_name}</p>
+            {filteredHeroes.map((hero) => {
+              // Use the helper function instead of calling useLineupStore in the loop
+              const assignedRoles = getHeroRoles(hero.id);
+              const isAssigned = assignedRoles.length > 0;
+              
+              return (
+                <Card
+                  key={hero.id}
+                  className={`overflow-hidden h-full group hover:ring-2 hover:ring-primary/50 transition-all ${isAssigned ? 'ring-1 ring-primary/70' : ''}`}
+                >
+                  <div className="relative h-28 sm:h-32 bg-gradient-to-b from-transparent to-black/70">
+                    {imageLoadError[hero.id] ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+                        <AlertCircle className="h-5 w-5 text-muted-foreground mb-1" />
+                        <p className="text-xs text-center text-muted-foreground px-2">{hero.localized_name}</p>
+                      </div>
+                    ) : (
+                      <>
+                        <Image
+                          src={hero.img || "/placeholder.svg"}
+                          alt={hero.localized_name}
+                          fill
+                          className={`object-cover ${isAssigned ? 'opacity-90' : ''}`}
+                          unoptimized
+                          sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                          onError={() => handleImageError(hero.id)}
+                        />
+                        {isAssigned && (
+                          <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1">
+                            {assignedRoles.map(role => {
+                              let roleLabel = ""
+                              switch (role) {
+                                case "HC": roleLabel = "1"; break;
+                                case "Mid": roleLabel = "2"; break;
+                                case "Offlane": roleLabel = "3"; break;
+                                case "Support 4": roleLabel = "4"; break;
+                                case "Support 5": roleLabel = "5"; break;
+                              }
+                              return (
+                                <span key={role} className="text-xs font-bold text-primary-foreground">
+                                  {roleLabel}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    <div className="absolute top-2 right-2">
+                      <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
+                        {getAttributeLabel(hero.primary_attr).charAt(0)}
+                      </Badge>
                     </div>
-                  ) : (
-                    <Image
-                      src={hero.img || "/placeholder.svg"}
-                      alt={hero.localized_name}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                      sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 16vw"
-                      onError={() => handleImageError(hero.id)}
-                    />
-                  )}
-                  <div className="absolute top-2 right-2">
-                    <Badge variant="outline" className={`${getAttributeColor(hero.primary_attr)}`}>
-                      {getAttributeLabel(hero.primary_attr).charAt(0)}
-                    </Badge>
-                  </div>
-                  <div className="absolute bottom-0 left-0 right-0 p-2">
-                    <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
-                  </div>
-                </div>
-                {editMode && (
-                  <div className="p-3 grid grid-cols-2 gap-2">
-                    {/* Left column - Core roles */}
-                    <div className="space-y-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 flex items-center justify-center"
-                        onClick={() => handleAddToRole(hero, "HC")}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        HC
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 flex items-center justify-center"
-                        onClick={() => handleAddToRole(hero, "Mid")}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Mid
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 flex items-center justify-center"
-                        onClick={() => handleAddToRole(hero, "Offlane")}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Off
-                      </Button>
+                    <div className="absolute bottom-0 left-0 right-0 p-2">
+                      <p className="text-sm font-medium text-white truncate">{hero.localized_name}</p>
                     </div>
+                  </div>
+                  {editMode && (
+                    <div className="p-3 grid grid-cols-2 gap-2">
+                      {/* Left column - Core roles */}
+                      <div className="space-y-2">
+                        <Button
+                          size="sm"
+                          variant={isHeroInRole(hero.id, "HC") ? "default" : "outline"}
+                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "HC") ? "bg-primary text-primary-foreground" : ""}`}
+                          onClick={() => handleToggleHeroInRole(hero, "HC")}
+                        >
+                          {isHeroInRole(hero.id, "HC") ? (
+                            <>
+                              <span className="text-xs font-bold">HC ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              HC
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={isHeroInRole(hero.id, "Mid") ? "default" : "outline"}
+                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Mid") ? "bg-primary text-primary-foreground" : ""}`}
+                          onClick={() => handleToggleHeroInRole(hero, "Mid")}
+                        >
+                          {isHeroInRole(hero.id, "Mid") ? (
+                            <>
+                              <span className="text-xs font-bold">Mid ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Mid
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={isHeroInRole(hero.id, "Offlane") ? "default" : "outline"}
+                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Offlane") ? "bg-primary text-primary-foreground" : ""}`}
+                          onClick={() => handleToggleHeroInRole(hero, "Offlane")}
+                        >
+                          {isHeroInRole(hero.id, "Offlane") ? (
+                            <>
+                              <span className="text-xs font-bold">Off ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Off
+                            </>
+                          )}
+                        </Button>
+                      </div>
 
-                    {/* Right column - Support roles */}
-                    <div className="space-y-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 flex items-center justify-center"
-                        onClick={() => handleAddToRole(hero, "Support 4")}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Sup 4
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full h-8 flex items-center justify-center"
-                        onClick={() => handleAddToRole(hero, "Support 5")}
-                      >
-                        <Plus className="h-3 w-3 mr-1" />
-                        Sup 5
-                      </Button>
+                      {/* Right column - Support roles */}
+                      <div className="space-y-2">
+                        <Button
+                          size="sm"
+                          variant={isHeroInRole(hero.id, "Support 4") ? "default" : "outline"}
+                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 4") ? "bg-primary text-primary-foreground" : ""}`}
+                          onClick={() => handleToggleHeroInRole(hero, "Support 4")}
+                        >
+                          {isHeroInRole(hero.id, "Support 4") ? (
+                            <>
+                              <span className="text-xs font-bold">Sup 4 ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Sup 4
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant={isHeroInRole(hero.id, "Support 5") ? "default" : "outline"}
+                          className={`w-full h-8 flex items-center justify-center ${isHeroInRole(hero.id, "Support 5") ? "bg-primary text-primary-foreground" : ""}`}
+                          onClick={() => handleToggleHeroInRole(hero, "Support 5")}
+                        >
+                          {isHeroInRole(hero.id, "Support 5") ? (
+                            <>
+                              <span className="text-xs font-bold">Sup 5 ✓</span>
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Sup 5
+                            </>
+                          )}
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </Card>
-            ))}
+                  )}
+                </Card>
+              )
+            })}
           </div>
 
           {filteredHeroes.length === 0 && (
