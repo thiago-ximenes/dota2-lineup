@@ -473,11 +473,15 @@ export function HeroList() {
   
   // Focus and show autocomplete when input is focused
   const handleInputFocus = useCallback(() => {
-    if (searchQuery && !isAutocompleteOpen) {
+    // Se já tiver um texto de busca, mostra sugestões relacionadas
+    if (searchQuery) {
       updateAutocompleteSuggestions(searchQuery);
-      setIsAutocompleteOpen(true);
+    } else {
+      // Se não tiver texto, mostra os primeiros 5 heróis como sugestão inicial
+      setAutocompleteResults(heroes.slice(0, 5));
     }
-  }, [searchQuery, isAutocompleteOpen, updateAutocompleteSuggestions]);
+    setIsAutocompleteOpen(true);
+  }, [searchQuery, heroes, updateAutocompleteSuggestions]);
 
   // Close autocomplete when clicking outside
   useEffect(() => {
@@ -569,12 +573,12 @@ export function HeroList() {
               {isAutocompleteOpen && autocompleteResults.length > 0 && (
                 <div 
                   ref={autocompleteRef}
-                  className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 shadow-md max-h-40 overflow-auto"
+                  className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 shadow-md max-h-32 overflow-auto"
                 >
                   {autocompleteResults.map((hero, index) => (
                     <div
                       key={hero.id}
-                      className={`flex w-full items-center px-3 py-1 text-xs cursor-pointer hover:bg-accent text-left ${selectedSuggestionIndex === index ? 'bg-accent' : ''}`}
+                      className={`flex w-full items-center px-3 py-1 text-sm cursor-pointer hover:bg-accent text-left ${selectedSuggestionIndex === index ? 'bg-accent' : ''}`}
                       onMouseDown={(e) => {
                         e.preventDefault(); // Impede que o input perca o foco
                         handleSelectHero(hero);
