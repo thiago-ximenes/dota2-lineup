@@ -41,7 +41,13 @@ export function GameMode() {
     setSelectedRoles(prev => 
       prev.filter(role => lineup[role].length > 0)
     )
-  }, [lineup])
+    
+    // For single role mode - auto-select next available position if current becomes empty
+    if (!isMultiMode && lineup[selectedRole]?.length === 0 && rolesWithHeroes.length > 0) {
+      setSelectedRole(rolesWithHeroes[0])
+      setRandomHero(null) // Reset hero when changing position
+    }
+  }, [lineup, selectedRole, rolesWithHeroes, isMultiMode])
   
   // Get position color (reused from lineup-manager.tsx)
   const getPositionColor = (role: Role): string => {
@@ -207,20 +213,43 @@ export function GameMode() {
           {!isMultiMode && (
             <>
               <div className="flex gap-2">
-                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as Role)}>
-                  <SelectTrigger className="flex-1">
+                <Select 
+                  value={selectedRole} 
+                  onValueChange={(value) => {
+                    setSelectedRole(value as Role)
+                    setRandomHero(null) // Reset random hero on role change
+                  }}
+                  disabled={rolesWithHeroes.length === 0}
+                >
+                  <SelectTrigger className="flex-1 flex items-center gap-2">
+                    {selectedRole && (
+                      <div className={`w-2.5 h-2.5 rounded-full ${getPositionColor(selectedRole).split(' ')[0]}`} />
+                    )}
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
-                    {roles.map((role) => (
-                      <SelectItem key={role} value={role} disabled={lineup[role].length === 0}>
-                        {role} ({lineup[role].length} heroes)
+                    {rolesWithHeroes.map((role) => (
+                      <SelectItem key={role} value={role} className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 w-full">
+                          <div className={`w-2.5 h-2.5 rounded-full ${getPositionColor(role).split(' ')[0]}`} />
+                          {role} ({lineup[role].length} heroes)
+                        </div>
                       </SelectItem>
                     ))}
+                    {rolesWithHeroes.length === 0 && (
+                      <div className="p-2 text-sm text-center text-muted-foreground">
+                        No heroes available in any position
+                      </div>
+                    )}
                   </SelectContent>
                 </Select>
 
-                <Button onClick={handleRandomize} disabled={isRandomizing || lineup[selectedRole].length === 0}>
+                <Button 
+                  onClick={handleRandomize} 
+                  disabled={isRandomizing || lineup[selectedRole]?.length === 0 || rolesWithHeroes.length === 0}
+                  variant="outline"
+                  className="flex-shrink-0 border border-border"
+                >
                   {isRandomizing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Dice5 className="h-4 w-4 mr-2" />}
                   Randomize
                 </Button>
@@ -236,28 +265,64 @@ export function GameMode() {
                     transition={{ duration: 0.2 }}
                     className="bg-card border rounded-lg overflow-hidden"
                   >
-                    <div className="relative h-48 sm:h-56 w-full">
-                      {imageError ? (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4">
-                          <AlertCircle className="h-6 w-6 text-muted-foreground mb-2" />
-                          <p className="text-center text-muted-foreground">
-                            Image could not be loaded for {randomHero.localized_name}
-                          </p>
+                    <div className="flex flex-col">
+                      <div className="relative h-48 sm:h-56 w-full">
+                        {imageError ? (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-4">
+                            <AlertCircle className="h-6 w-6 text-muted-foreground mb-2" />
+                            <p className="text-center text-muted-foreground">
+                              Image could not be loaded for {randomHero.localized_name}
+                            </p>
+                          </div>
+                        ) : (
+                          <Image
+                            src={randomHero.img || "/placeholder.svg"}
+                            alt={randomHero.localized_name}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            onError={handleImageError}
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
+                      </div>
+                      
+                      <div className="p-4 border-t border-border/50">
+                        <div className="flex items-center justify-between">
+                          <Badge className={getPositionColor(selectedRole)}>
+                            {getPositionLabel(selectedRole)}
+                          </Badge>
+                          
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-7 w-7"
+                                  onClick={() => setRandomHero(null)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Clear selection</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
-                      ) : (
-                        <Image
-                          src={randomHero.img || "/placeholder.svg"}
-                          alt={randomHero.localized_name}
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          onError={handleImageError}
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <h3 className="text-xl font-bold">{randomHero.localized_name}</h3>
-                        <p className="text-sm opacity-90">{selectedRole} Role</p>
+                        
+                        <h3 className="text-xl font-bold mt-2">{randomHero.localized_name}</h3>
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full mt-3"
+                          onClick={handleRandomize}
+                        >
+                          <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                          Roll again
+                        </Button>
                       </div>
                     </div>
                   </motion.div>
@@ -269,16 +334,41 @@ export function GameMode() {
                     exit={{ opacity: 0 }}
                     className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[180px]"
                   >
-                    <Dice5 className="h-10 w-10 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      {lineup[selectedRole].length === 0
-                        ? `No heroes available for ${selectedRole} role`
-                        : "Click randomize to pick a hero"}
-                    </p>
-                    {lineup[selectedRole].length === 0 && (
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Add heroes to this role in the Hero Selection section below
-                      </p>
+                    <div className="mb-4 p-3 bg-muted/50 rounded-full">
+                      <Dice5 className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    
+                    {rolesWithHeroes.length === 0 ? (
+                      <>
+                        <p className="text-muted-foreground font-medium">No heroes available</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                          Add heroes to positions in the Hero Selection section below
+                        </p>
+                      </>
+                    ) : lineup[selectedRole]?.length === 0 ? (
+                      <>
+                        <p className="text-muted-foreground font-medium">No heroes in {selectedRole} position</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                          Select another position or add heroes to this role
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-muted-foreground font-medium">Ready to randomize</p>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                          Click the randomize button to pick a hero for {selectedRole}
+                        </p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className={`mt-4 ${getPositionColor(selectedRole)} border-none`}
+                          onClick={handleRandomize}
+                          disabled={isRandomizing}
+                        >
+                          {isRandomizing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Dice5 className="h-4 w-4 mr-2" />}
+                          Randomize {getPositionLabel(selectedRole)}
+                        </Button>
+                      </>
                     )}
                   </motion.div>
                 )}
@@ -373,7 +463,7 @@ export function GameMode() {
                       exit={{ opacity: 0 }}
                       className="space-y-3"
                     >
-                      <ScrollArea className="max-h-[320px] pr-4">
+                      <ScrollArea className="max-h-[460px] pr-4">
                         <div className="space-y-3 pb-2">
                           {selectedRoles.map((role) => (
                             randomHeroes[role] ? (
