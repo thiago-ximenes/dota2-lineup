@@ -91,17 +91,17 @@ const HeroCard = memo(({
                     case "HC": 
                       positionLabel = "HC";
                       roleColor = "bg-green-500"; // Safe lane carry (verde)
-                      tooltipText = "Hard Carry (Posição 1) - Safe Lane";
+                      tooltipText = "Hard Carry (Position 1) - Safe Lane";
                       break;
                     case "Mid": 
                       positionLabel = "MID";
                       roleColor = "bg-blue-500"; // Mid lane (azul)
-                      tooltipText = "Mid Lane (Posição 2)";
+                      tooltipText = "Mid Lane (Position 2)";
                       break;
                     case "Offlane": 
                       positionLabel = "OFF";
                       roleColor = "bg-orange-500"; // Off lane (laranja)
-                      tooltipText = "Offlane (Posição 3)";
+                      tooltipText = "Offlane (Position 3)";
                       break;
                     case "Support 4": 
                       positionLabel = "S4";
