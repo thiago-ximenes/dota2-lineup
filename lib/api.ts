@@ -1,17 +1,18 @@
-import type { Hero } from "@/lib/types"
+import type { HeroApiResponse } from "@/lib/types"
 
 const API_BASE_URL = "https://api.opendota.com/api"
-const HERO_IMAGE_BASE = "https://api.opendota.com"
+const HERO_IMAGE_BASE = "http://cdn.dota2.com"
 
-export async function fetchHeroes(): Promise<Hero[]> {
+export async function fetchHeroes(): Promise<HeroApiResponse[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/heroStats`)
+    console.log("Fetched heroes:", response)
 
     if (!response.ok) {
       throw new Error(`API request failed with status ${response.status}`)
     }
 
-    const data = await response.json()
+    const data = await response.json() as HeroApiResponse[]
 
     // Log the first hero's image paths to debug
     if (data.length > 0) {
@@ -23,7 +24,7 @@ export async function fetchHeroes(): Promise<Hero[]> {
       })
     }
 
-    return data.map((hero: any) => {
+    return data.map((hero: HeroApiResponse) => {
       // Special handling for hero ID 1 (Anti-Mage) which seems to have issues
       if (hero.id === 1) {
         console.log("Special handling for hero ID 1:", hero.localized_name)
@@ -32,6 +33,16 @@ export async function fetchHeroes(): Promise<Hero[]> {
           ...hero,
           img: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/antimage.png?`,
           icon: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/icons/antimage.png?`,
+        }
+      }
+      
+      // Special handling for hero ID 15 (likely Razor) which has image loading issues
+      if (hero.id === 15) {
+        console.log("Special handling for hero ID 15:", hero.localized_name)
+        return {
+          ...hero,
+          img: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/razor.png?`,
+          icon: `${HERO_IMAGE_BASE}/apps/dota2/images/dota_react/heroes/icons/razor.png?`,
         }
       }
 
