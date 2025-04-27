@@ -431,7 +431,29 @@ export function HeroList() {
     };
 
     filterHeroes();
-  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, selectedPositionFilter]);
+  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, selectedPositionFilter, getHeroRoles]);
+
+  // Efeito para atualizar automaticamente o filtro de posição quando uma posição ficar vazia
+  useEffect(() => {
+    // Não fazer nada se o filtro atual for "all"
+    if (selectedPositionFilter === "all") return;
+    
+    // Verificar se a posição atual selecionada ainda tem heróis
+    const currentPositionHasHeroes = lineup[selectedPositionFilter].length > 0;
+    
+    if (!currentPositionHasHeroes) {
+      // Se a posição atual não tem mais heróis, encontrar a próxima posição com heróis
+      const activePositions = getActivePositions();
+      
+      if (activePositions.length > 0) {
+        // Se houver outras posições com heróis, mudar para a primeira delas
+        setSelectedPositionFilter(activePositions[0]);
+      } else {
+        // Se não houver posições com heróis, voltar para "all"
+        setSelectedPositionFilter("all");
+      }
+    }
+  }, [lineup, selectedPositionFilter, getActivePositions]);
 
   const getAttributeLabel = useCallback((attr: string) => {
     switch (attr) {
