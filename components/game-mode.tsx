@@ -380,165 +380,214 @@ export function GameMode() {
           {/* Multi-role mode UI */}
           {isMultiMode && (
             <>
-              <div className="space-y-4">
-                {/* Role selection chips */}
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-medium">Select positions to randomize:</label>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={selectAllRoles}
-                        disabled={rolesWithHeroes.length === 0}
-                        className="h-8 text-xs"
-                      >
-                        Select All
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={clearSelectedRoles}
-                        disabled={selectedRoles.length === 0}
-                        className="h-8 text-xs"
-                      >
-                        Clear
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {rolesWithHeroes.map((role) => {
-                      const isSelected = selectedRoles.includes(role);
-                      
-                      return (
-                        <TooltipProvider key={role}>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className={`cursor-pointer flex gap-2 items-center px-3 py-2 transition-all duration-200 shadow-sm hover:shadow 
-                                  ${isSelected 
-                                    ? `${getPositionColor(role)} ring-2 ring-offset-2 ring-offset-background ring-${getPositionColor(role).split(' ')[0].replace('bg-', '')}`
-                                    : "bg-card hover:bg-card/80 border-border"
-                                  }`}
-                                onClick={() => toggleRoleSelection(role)}
-                              >
-                                <div className={`w-2.5 h-2.5 rounded-full ${getPositionColor(role).split(' ')[0]}`} />
-                                <span className={isSelected ? "text-white font-medium" : "text-foreground"}>
-                                  {getPositionLabel(role)}
-                                </span>
-                                <span className={`text-xs px-1.5 py-0.5 rounded-full ${isSelected ? "bg-white/20" : "bg-muted"}`}>
-                                  {lineup[role].length}
-                                </span>
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="font-medium">
-                              {isSelected 
-                                ? `Remove ${role} from randomization` 
-                                : `Add ${role} to randomization`
-                              }
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      )
-                    })}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-medium">Select positions to randomize:</label>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={selectAllRoles}
+                      disabled={rolesWithHeroes.length === 0}
+                      className="h-8 text-xs"
+                    >
+                      Select All
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={clearSelectedRoles}
+                      disabled={selectedRoles.length === 0}
+                      className="h-8 text-xs"
+                    >
+                      Clear
+                    </Button>
                   </div>
                 </div>
                 
-                <Button 
-                  className="w-full" 
-                  disabled={selectedRoles.length === 0 || isRandomizing}
-                  onClick={handleMultiRandomize}
-                >
-                  {isRandomizing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Shuffle className="h-4 w-4 mr-2" />}
-                  Randomize {selectedRoles.length} Position{selectedRoles.length !== 1 ? 's' : ''}
-                </Button>
-                
-                <AnimatePresence mode="wait">
-                  {selectedRoles.length > 0 && Object.keys(randomHeroes).length > 0 ? (
-                    <motion.div
-                      key="results"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="space-y-3"
-                    >
-                      <ScrollArea className="max-h-[460px] pr-4">
-                        <div className="space-y-3 pb-2">
-                          {selectedRoles.map((role) => (
-                            randomHeroes[role] ? (
-                              <motion.div
-                                key={`${role}-${randomHeroes[role]?.id || 'empty'}`}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.2 }}
-                                className="bg-card border rounded-lg overflow-hidden"
-                              >
-                                <div className="flex h-20">
-                                  <div className={`w-1 ${getPositionColor(role).split(' ')[0]}`} />
-                                  <div className="relative flex-1 flex items-center">
-                                    <div className="w-20 h-20 relative flex-shrink-0">
-                                      {imageErrors[role] ? (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
-                                          <AlertCircle className="h-4 w-4 text-muted-foreground" />
-                                        </div>
-                                      ) : (
-                                        <Image
-                                          src={randomHeroes[role].img || "/placeholder.svg"}
-                                          alt={randomHeroes[role].localized_name}
-                                          fill
-                                          className="object-cover"
-                                          unoptimized
-                                          onError={() => handleMultiImageError(role)}
-                                        />
-                                      )}
-                                    </div>
-                                    <div className="p-4 flex-1">
-                                      <div className="flex items-center gap-2">
-                                        <Badge className={getPositionColor(role)}>
-                                          {getPositionLabel(role)}
-                                        </Badge>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {rolesWithHeroes.map((role) => {
+                    const isSelected = selectedRoles.includes(role);
+                    
+                    return (
+                      <TooltipProvider key={role}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge
+                              variant="outline"
+                              className={`cursor-pointer flex gap-2 items-center px-3 py-2 transition-all duration-200 shadow-sm hover:shadow 
+                                ${isSelected 
+                                  ? `${getPositionColor(role)} ring-2 ring-offset-2 ring-offset-background ring-${getPositionColor(role).split(' ')[0].replace('bg-', '')}`
+                                  : "bg-card hover:bg-card/80 border-border"
+                                }`}
+                              onClick={() => toggleRoleSelection(role)}
+                            >
+                              <div className={`w-2.5 h-2.5 rounded-full ${getPositionColor(role).split(' ')[0]}`} />
+                              <span className={isSelected ? "text-white font-medium" : "text-foreground"}>
+                                {getPositionLabel(role)}
+                              </span>
+                              <span className={`text-xs px-1.5 py-0.5 rounded-full ${isSelected ? "bg-white/20" : "bg-muted"}`}>
+                                {lineup[role].length}
+                              </span>
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="font-medium">
+                            {isSelected 
+                              ? `Remove ${role} from randomization` 
+                              : `Add ${role} to randomization`
+                            }
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              <AnimatePresence mode="wait">
+                {selectedRoles.length > 0 && Object.keys(randomHeroes).length > 0 ? (
+                  <motion.div
+                    key="results"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="space-y-3"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-medium">Randomized heroes:</h3>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleMultiRandomize}
+                              disabled={isRandomizing}
+                              className="h-8 text-xs flex gap-2 items-center"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5" /> 
+                              Roll again
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Generate a new set of random heroes</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    
+                    <ScrollArea className="max-h-[460px] pr-4">
+                      <div className="space-y-3 pb-2">
+                        {selectedRoles.map((role) => (
+                          randomHeroes[role] ? (
+                            <motion.div
+                              key={`${role}-${randomHeroes[role]?.id || 'empty'}`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="bg-card border rounded-lg overflow-hidden"
+                            >
+                              <div className="flex h-20">
+                                <div className={`w-1 ${getPositionColor(role).split(' ')[0]}`} />
+                                <div className="relative flex-1 flex items-center">
+                                  <div className="w-20 h-20 relative flex-shrink-0">
+                                    {imageErrors[role] ? (
+                                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted">
+                                        <AlertCircle className="h-4 w-4 text-muted-foreground" />
                                       </div>
-                                      <h3 className="font-bold mt-1">{randomHeroes[role].localized_name}</h3>
+                                    ) : (
+                                      <Image
+                                        src={randomHeroes[role].img || "/placeholder.svg"}
+                                        alt={randomHeroes[role].localized_name}
+                                        fill
+                                        className="object-cover"
+                                        unoptimized
+                                        onError={() => handleMultiImageError(role)}
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="p-4 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <Badge className={getPositionColor(role)}>
+                                        {getPositionLabel(role)}
+                                      </Badge>
                                     </div>
+                                    <h3 className="font-bold mt-1">{randomHeroes[role].localized_name}</h3>
                                   </div>
                                 </div>
-                              </motion.div>
-                            ) : null
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </motion.div>
-                  ) : selectedRoles.length > 0 ? (
-                    <motion.div
-                      key="empty-selection"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center p-6 border rounded-lg flex flex-col items-center justify-center"
+                              </div>
+                            </motion.div>
+                          ) : null
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </motion.div>
+                ) : selectedRoles.length > 0 ? (
+                  <motion.div
+                    key="empty-selection"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[180px]"
+                  >
+                    <div className="mb-4 p-3 bg-muted/50 rounded-full">
+                      <Shuffle className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium">
+                      Ready to randomize
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                      Click the button below to pick random heroes for your selected positions
+                    </p>
+                    
+                    <Button
+                      variant="outline"
+                      className="mt-4 bg-violet-500 hover:bg-violet-600 text-white border-none"
+                      onClick={handleMultiRandomize}
+                      disabled={isRandomizing}
                     >
-                      <Shuffle className="h-10 w-10 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">
-                        Click randomize to pick heroes for your selected positions
-                      </p>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="no-selection"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="text-center p-6 border rounded-lg flex flex-col items-center justify-center"
-                    >
-                      <AlertCircle className="h-10 w-10 text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">
-                        Select at least one position to randomize
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      {isRandomizing ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Shuffle className="h-4 w-4 mr-2" />}
+                      Randomize {selectedRoles.length} Position{selectedRoles.length !== 1 ? 's' : ''}
+                    </Button>
+                  </motion.div>
+                ) : rolesWithHeroes.length > 0 ? (
+                  <motion.div
+                    key="no-selection"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[180px]"
+                  >
+                    <div className="mb-4 p-3 bg-muted/50 rounded-full">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium">
+                      No positions selected
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                      Select at least one position from above to start randomizing
+                    </p>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="no-heroes"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="text-center p-6 border rounded-lg flex flex-col items-center justify-center min-h-[180px]"
+                  >
+                    <div className="mb-4 p-3 bg-muted/50 rounded-full">
+                      <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <p className="text-muted-foreground font-medium">
+                      No heroes available
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+                      Add heroes to positions in the Hero Selection section below
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </>
           )}
         </div>
