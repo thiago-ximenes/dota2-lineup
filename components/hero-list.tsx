@@ -484,11 +484,8 @@ export function HeroList() {
     const query = e.target.value;
     setSearchQuery(query);
     updateAutocompleteSuggestions(query);
-    if (query) {
-      setIsAutocompleteOpen(true);
-    } else {
-      setIsAutocompleteOpen(false);
-    }
+    // Sempre manter o dropdown aberto, independente de ter texto ou não
+    setIsAutocompleteOpen(true);
   }, [updateAutocompleteSuggestions]);
   
   // Focus and show autocomplete when input is focused
@@ -598,7 +595,7 @@ export function HeroList() {
                 <div 
                   ref={autocompleteRef}
                   className="absolute z-10 w-full bg-background border border-input rounded-md mt-1 shadow-md overflow-auto"
-                  style={{ maxHeight: "calc(3 * 28px)" }} // Altura para mostrar exatamente 3 itens
+                  style={{ maxHeight: "calc(2 * 28px)" }} // Altura para mostrar exatamente 2 itens
                 >
                   {autocompleteResults.map((hero, index) => (
                     <div
