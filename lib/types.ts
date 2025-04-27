@@ -57,6 +57,9 @@ export interface HeroApiResponse {
   null_win: number;
 }
 
+// Exportando Hero como alias para HeroApiResponse para uso mais conveniente no código
+export type Hero = HeroApiResponse;
+
 export type Role = "HC" | "Mid" | "Offlane" | "Support 4" | "Support 5"
 
 export interface Lineup {

@@ -13,14 +13,6 @@ import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command"
 
 // Debounce function to delay filtering while user types
 function useDebounce<T>(value: T, delay: number): T {
@@ -78,7 +70,7 @@ const HeroCard = memo(({
         ) : (
           <>
             <Image
-              src={hero.img || "/placeholder.svg"}
+              src={hero.img ?? "/placeholder.svg"}
               alt={hero.localized_name}
               fill
               className={`object-cover ${isAssigned ? 'opacity-90' : ''}`}
@@ -127,9 +119,7 @@ const HeroCard = memo(({
               onClick={() => handleToggleHeroInRole(hero, "HC")}
             >
               {isHeroInRole(hero.id, "HC") ? (
-                <>
-                  <span className="text-xs font-bold">HC ✓</span>
-                </>
+                <span className="text-xs font-bold">HC ✓</span>
               ) : (
                 <>
                   <Plus className="h-3 w-3 mr-1" />
@@ -144,9 +134,7 @@ const HeroCard = memo(({
               onClick={() => handleToggleHeroInRole(hero, "Mid")}
             >
               {isHeroInRole(hero.id, "Mid") ? (
-                <>
-                  <span className="text-xs font-bold">Mid ✓</span>
-                </>
+                <span className="text-xs font-bold">Mid ✓</span>
               ) : (
                 <>
                   <Plus className="h-3 w-3 mr-1" />
@@ -161,9 +149,7 @@ const HeroCard = memo(({
               onClick={() => handleToggleHeroInRole(hero, "Offlane")}
             >
               {isHeroInRole(hero.id, "Offlane") ? (
-                <>
-                  <span className="text-xs font-bold">Off ✓</span>
-                </>
+                <span className="text-xs font-bold">Off ✓</span>
               ) : (
                 <>
                   <Plus className="h-3 w-3 mr-1" />
@@ -182,9 +168,7 @@ const HeroCard = memo(({
               onClick={() => handleToggleHeroInRole(hero, "Support 4")}
             >
               {isHeroInRole(hero.id, "Support 4") ? (
-                <>
-                  <span className="text-xs font-bold">Sup 4 ✓</span>
-                </>
+                <span className="text-xs font-bold">Sup 4 ✓</span>
               ) : (
                 <>
                   <Plus className="h-3 w-3 mr-1" />
@@ -199,9 +183,7 @@ const HeroCard = memo(({
               onClick={() => handleToggleHeroInRole(hero, "Support 5")}
             >
               {isHeroInRole(hero.id, "Support 5") ? (
-                <>
-                  <span className="text-xs font-bold">Sup 5 ✓</span>
-                </>
+                <span className="text-xs font-bold">Sup 5 ✓</span>
               ) : (
                 <>
                   <Plus className="h-3 w-3 mr-1" />
@@ -235,6 +217,9 @@ export function HeroList() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("all")
   const [imageLoadError, setImageLoadError] = useState<Record<number, boolean>>({})
+  
+  // Novo estado para armazenar roles únicos da API
+  const [availableRoles, setAvailableRoles] = useState<string[]>([])
   
   // State for autocomplete functionality
   const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false)
@@ -290,7 +275,13 @@ export function HeroList() {
           icon: data[0].icon,
         })
       }
-
+      
+      // Extrair e definir roles únicos disponíveis na API
+      const uniqueRoles = Array.from(
+        new Set(data.flatMap(hero => hero.roles))
+      ).sort();
+      
+      setAvailableRoles(uniqueRoles);
       setHeroes(data)
       setFilteredHeroes(data)
       setLoading(false)
@@ -339,34 +330,30 @@ export function HeroList() {
         });
       }
 
-      // Filter by attribute
-      if (attributeFilter !== "all") {
-        result = result.filter((hero) => hero.primary_attr === attributeFilter);
-      }
-
-      // Filter by role - Fix for midlane filter
-      if (roleFilter !== "all") {
-        const possibleRoles = roleMapping[roleFilter as keyof typeof roleMapping] || [roleFilter];
-        
-        result = result.filter((hero) =>
-          hero.roles.some((role) =>
-            possibleRoles.some((mappedRole) => 
-              role.toLowerCase().includes(mappedRole.toLowerCase())
-            )
-          )
-        );
-      }
-
-      // Filter by tab
+      // Filter by tab/attribute
       if (activeTab !== "all") {
-        result = result.filter((hero) => hero.primary_attr === activeTab);
+        if (activeTab === "universal") {
+          // Filtrar heróis universais
+          result = result.filter((hero) => hero.primary_attr === "all" || hero.primary_attr === "universal");
+        } else {
+          // Filtrar heróis com atributos tradicionais (str, agi, int)
+          result = result.filter((hero) => hero.primary_attr === activeTab);
+        }
+      }
+
+      // Filter by role - agora usando exatamente o role da API
+      if (roleFilter !== "all") {
+        // Filtrar direto pelo valor do role selecionado
+        result = result.filter((hero) =>
+          hero.roles.includes(roleFilter)
+        );
       }
 
       setFilteredHeroes(result);
     };
 
     filterHeroes();
-  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab, roleMapping]);
+  }, [heroes, debouncedSearchQuery, attributeFilter, roleFilter, activeTab]);
 
   const getAttributeLabel = useCallback((attr: string) => {
     switch (attr) {
@@ -619,10 +606,9 @@ export function HeroList() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="carry">Carry</SelectItem>
-                <SelectItem value="mid">Midlane</SelectItem>
-                <SelectItem value="offlane">Offlane</SelectItem>
-                <SelectItem value="support">Support</SelectItem>
+                {availableRoles.map(role => (
+                  <SelectItem key={role} value={role}>{role}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -633,6 +619,7 @@ export function HeroList() {
               <TabsTrigger value="str">Strength</TabsTrigger>
               <TabsTrigger value="agi">Agility</TabsTrigger>
               <TabsTrigger value="int">Intelligence</TabsTrigger>
+              <TabsTrigger value="universal">Universal</TabsTrigger>
             </TabsList>
           </Tabs>
 
