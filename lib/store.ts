@@ -17,6 +17,7 @@ export const useLineupStore = create<LineupState>()(
     (set) => ({
       lineup: emptyLineup,
       editMode: true,
+      selectedPositions: [],
       addHero: (role: Role, hero: Hero) =>
         set((state) => {
           // Check if hero already exists in this role
@@ -49,6 +50,22 @@ export const useLineupStore = create<LineupState>()(
       importLineup: (importedLineup: Lineup) =>
         set(() => ({
           lineup: importedLineup,
+        })),
+      togglePositionFilter: (role: Role) =>
+        set((state) => {
+          if (state.selectedPositions.includes(role)) {
+            return {
+              selectedPositions: state.selectedPositions.filter(r => r !== role)
+            }
+          } else {
+            return {
+              selectedPositions: [...state.selectedPositions, role]
+            }
+          }
+        }),
+      clearPositionFilter: () =>
+        set(() => ({
+          selectedPositions: []
         })),
     }),
     {

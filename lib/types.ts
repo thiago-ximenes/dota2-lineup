@@ -73,9 +73,12 @@ export interface Lineup {
 export interface LineupState {
   lineup: Lineup
   editMode: boolean
+  selectedPositions: Role[]
   addHero: (role: Role, hero: HeroApiResponse) => void
   removeHero: (role: Role, heroId: number) => void
   toggleEditMode: () => void
   clearLineup: () => void
   importLineup: (importedLineup: Lineup) => void
+  togglePositionFilter: (role: Role) => void
+  clearPositionFilter: () => void
 }

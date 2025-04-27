@@ -651,7 +651,7 @@ export function HeroList() {
   }
 
   return (
-    <Card>
+    <Card id="hero-selection">
       <CardHeader>
         <CardTitle>Hero Selection</CardTitle>
       </CardHeader>
