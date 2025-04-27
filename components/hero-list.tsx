@@ -79,21 +79,42 @@ const HeroCard = memo(({
               onError={() => handleImageError(hero.id)}
             />
             {isAssigned && (
-              <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1">
+              <div className="absolute top-0 left-0 px-1.5 py-1 bg-primary/90 flex gap-1.5">
                 {assignedRoles.map(role => {
-                  let roleLabel = ""
+                  let roleLabel = "";
+                  let roleIcon = "";
+                  
+                  // Melhorando a apresentação das posições
                   switch (role) {
-                    case "HC": roleLabel = "1"; break;
-                    case "Mid": roleLabel = "2"; break;
-                    case "Offlane": roleLabel = "3"; break;
-                    case "Support 4": roleLabel = "4"; break;
-                    case "Support 5": roleLabel = "5"; break;
+                    case "HC": 
+                      roleLabel = "1"; 
+                      roleIcon = "HC";
+                      break;
+                    case "Mid": 
+                      roleLabel = "2"; 
+                      roleIcon = "MID";
+                      break;
+                    case "Offlane": 
+                      roleLabel = "3"; 
+                      roleIcon = "OFF";
+                      break;
+                    case "Support 4": 
+                      roleLabel = "4"; 
+                      roleIcon = "SUP";
+                      break;
+                    case "Support 5": 
+                      roleLabel = "5"; 
+                      roleIcon = "SUP";
+                      break;
                   }
+                  
                   return (
-                    <span key={role} className="text-xs font-bold text-primary-foreground">
-                      {roleLabel}
-                    </span>
-                  )
+                    <div key={role} className="flex items-center justify-center">
+                      <span className="text-xs font-bold text-primary-foreground">
+                        {`${roleLabel}/${roleIcon}`}
+                      </span>
+                    </div>
+                  );
                 })}
               </div>
             )}
